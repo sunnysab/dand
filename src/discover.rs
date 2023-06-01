@@ -1,6 +1,6 @@
+use chrono::{DateTime, Local};
 use std::fs::{self, ReadDir};
 use std::path::{Path, PathBuf};
-use chrono::{DateTime, Local};
 
 /// Iterator over the entries in a directory and its sub-directories.
 struct FileWalker {
@@ -28,7 +28,6 @@ impl Iterator for FileWalker {
         while let Some(lowest_dir_iter) = self.stack.last_mut() {
             // If current layer's iterator is available, read next file
             if let Some(next_entry) = lowest_dir_iter.next() {
-
                 // If current entrance is not available, consider that there are still some files to
                 // iterate and `lowest_dir_iter` has been moved, return error and wait for a next call.
                 if let Err(e) = next_entry {
@@ -123,7 +122,7 @@ impl ReadSingleFile for PostWalker<'_> {
     }
 }
 
-impl<'a> WalkDirectory<'a> for PostWalker<'a>{
+impl<'a> WalkDirectory<'a> for PostWalker<'a> {
     /// Create a new `PostWalker` instance for a certain directory.
     ///
     /// Example:
@@ -138,7 +137,9 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a>{
     /// ```
     fn new(root: &'a str) -> PostWalker {
         let root_directory = Path::new(root);
-        Self { root: root_directory }
+        Self {
+            root: root_directory,
+        }
     }
 
     /// Parse file path, detect section name from path.
@@ -154,19 +155,26 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a>{
     /// In this program, we assume that `full_path` is always starting with prefix, because we just
     /// iterate root path (`prefix` here) and then get files which path named `full_path` here.
     fn convert_path(&self, full_path: &Path) -> String {
-        // relative path
+        #[cfg(windows)]
+        let (separator, index) = ("\\", "\\index");
+        #[cfg(not(windows))]
+        let (separator, index) = ("/", "/index");
+
+        // Relative path
         let rp = match full_path.strip_prefix(self.root) {
             Ok(p) => p,
             Err(_) => full_path,
-        }.display().to_string();
+        }
+        .display()
+        .to_string();
         let rp = rp.trim_end_matches(".md");
-        let rp = rp.trim_end_matches("/index"); // TODO: Compatibility on Windows.
+        let rp = rp.trim_end_matches(index);
 
         // Do conversion that `Post/Post.md` -> `Post`
-        let rp = if let Some(last_slash) = rp.rfind("/") {
+        let rp = if let Some(last_slash) = rp.rfind(separator) {
             let article = &rp[(last_slash + 1)..];
             // In case that rp is like `Post/Post`, do trim.
-            let postfix = format!("/{}/{}", article, article);
+            let postfix = format!("{separator}{article}{separator}{article}");
             if rp.ends_with(&postfix) || rp == &postfix[1..] {
                 &rp[..last_slash]
             } else {
@@ -177,7 +185,8 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a>{
             rp
         };
 
-        rp.to_string()
+        // Improve readability by always using '/'
+        rp.replace("\\", "/")
     }
 
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
@@ -210,7 +219,7 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a>{
             .filter(|f| {
                 // f.ends_with() returns true only if the whole path components matches, use extension() instead.
                 f.extension() == Some("md".as_ref())
-            } )
+            })
             .map(|f| {
                 // Read metadata and generate a PostReference.
                 self.open(f)
@@ -218,4 +227,3 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a>{
             .collect()
     }
 }
-
