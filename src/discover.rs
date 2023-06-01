@@ -10,9 +10,8 @@ struct FileWalker {
 }
 
 impl FileWalker {
-    fn open(root: &str) -> anyhow::Result<Self> {
-        let path = Path::new(root);
-        let iter = path.read_dir()?;
+    fn open(root: &Path) -> anyhow::Result<Self> {
+        let iter = root.read_dir()?;
 
         let stack = vec![iter];
         Ok(FileWalker { stack })
@@ -62,93 +61,161 @@ impl Iterator for FileWalker {
 }
 
 /// Reference to a markdown file
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PostReference {
     /// Relative name is a pure file title with the column it belongs to.
-    relative_name: String,
+    pub relative_name: String,
     /// Full file path
-    full_path: PathBuf,
+    pub full_path: PathBuf,
 
     /// Creation time
-    created: DateTime<Local>,
+    pub created: DateTime<Local>,
     /// Last modified time
-    modified: DateTime<Local>,
+    pub modified: DateTime<Local>,
 }
 
-/// Parse file path, detect section name from path.
-///
-/// in **column**:
-///   `Column/index.md` -> `Column`
-///   `Column/1.md` -> `Column/1`
-///
-/// for **individual post**:
-///   `Post/Post.md` -> `Post`
-///   `Post.md` -> `Post`
-///
-/// In this program, we assume that `full_path` is always starting with prefix, because we just
-/// iterate root path (`prefix` here) and then get files which path named `full_path` here.
-fn convert_path(prefix: &Path, full_path: &Path) -> String {
-    // relative path
-    let rp = match full_path.strip_prefix(prefix) {
-        Ok(p) => p,
-        Err(_) => full_path,
-    }.display().to_string();
+pub struct PostWalker<'a> {
+    root: &'a Path,
+}
 
-    let rp = rp.trim_end_matches(".md");
-    let rp = rp.trim_end_matches("/index"); // TODO: Compatibility on Windows.
+pub trait ReadSingleFile {
+    /// Read the metadata of a markdown file, returns a `PostReference` structure.
+    fn open(full_path: PathBuf) -> anyhow::Result<PostReference>;
+}
 
-    // Do conversion that `Post/Post.md` -> `Post`
-    let rp = if let Some(last_slash) = rp.rfind("/") {
-        let article = &rp[(last_slash + 1)..];
-        // In case that rp is like `Post/Post`, do trim.
-        let postfix = format!("/{}/{}", article, article);
-        if rp.ends_with(&postfix) || rp == &postfix[1..] {
-            &rp[..last_slash]
+pub trait WalkDirectory<'a> {
+    /// Create a new `PostWalker` instance for a certain directory.
+    fn new(root: &'a str) -> PostWalker;
+    /// Parse file path, detect section name from path.
+    fn convert_path(&self, relative_path: &Path) -> String;
+    /// Read the metadata of a markdown file, returns a `PostReference` structure.
+    fn open(&self, full_path: PathBuf) -> anyhow::Result<PostReference>;
+    /// Read markdown files in `root` directory and its sub-directories and return a `PostReference` list.
+    fn walk(&self) -> anyhow::Result<Vec<PostReference>>;
+}
+
+impl ReadSingleFile for PostWalker<'_> {
+    /// Read the metadata of a markdown file, returns a `PostReference` structure.
+    ///
+    /// Example:
+    /// ```rust
+    /// let path = PathBuf::from(String::from("..."));
+    /// let file = <PostWalker<'_> as ReadSingleFile>::open(path).unwrap();
+    /// println!("{:#?}", file);
+    /// ```
+    fn open(full_path: PathBuf) -> anyhow::Result<PostReference> {
+        let metadata = full_path.metadata().unwrap();
+        let created = DateTime::<Local>::from(metadata.created()?);
+        let modified = DateTime::<Local>::from(metadata.modified()?);
+
+        let relative_name = if let Some(file) = full_path.file_name() {
+            file.to_string_lossy().trim_end_matches(".md").to_string()
         } else {
-            // If rp is like `P1/1`, do nothing
-            rp
-        }
-    } else {
-        rp
-    };
-
-    rp.to_string()
+            String::from("Invalid filename ends with \"..\"")
+        };
+        let result = PostReference {
+            relative_name,
+            full_path,
+            created,
+            modified,
+        };
+        Ok(result)
+    }
 }
 
-/// Open the metadata of a markdown file, returns a `PostReference` structure.
-fn open(prefix: &Path, path: PathBuf) -> anyhow::Result<PostReference> {
-    let metadata = path.metadata()?;
-    let created = DateTime::<Local>::from(metadata.created()?);
-    let modified = DateTime::<Local>::from(metadata.modified()?);
+impl<'a> WalkDirectory<'a> for PostWalker<'a>{
+    /// Create a new `PostWalker` instance for a certain directory.
+    ///
+    /// Example:
+    /// ```rust
+    /// let files = PostWalker::new("...")
+    ///     .walk()
+    ///     .unwrap();
+    ///
+    /// for file in files {
+    ///     println!("{:#?}", file);
+    /// }
+    /// ```
+    fn new(root: &'a str) -> PostWalker {
+        let root_directory = Path::new(root);
+        Self { root: root_directory }
+    }
 
-    let relative_name = convert_path(prefix, &path);
-    let result = PostReference {
-        relative_name,
-        full_path: path,
-        created,
-        modified,
-    };
-    Ok(result)
-}
+    /// Parse file path, detect section name from path.
+    ///
+    /// in **column**:
+    ///   `Column/index.md` -> `Column`
+    ///   `Column/1.md` -> `Column/1`
+    ///
+    /// for **individual post**:
+    ///   `Post/Post.md` -> `Post`
+    ///   `Post.md` -> `Post`
+    ///
+    /// In this program, we assume that `full_path` is always starting with prefix, because we just
+    /// iterate root path (`prefix` here) and then get files which path named `full_path` here.
+    fn convert_path(&self, full_path: &Path) -> String {
+        // relative path
+        let rp = match full_path.strip_prefix(self.root) {
+            Ok(p) => p,
+            Err(_) => full_path,
+        }.display().to_string();
+        let rp = rp.trim_end_matches(".md");
+        let rp = rp.trim_end_matches("/index"); // TODO: Compatibility on Windows.
 
-/// Read markdown files in `root` directory and its sub-directories and return a `PostReference` list.
-pub fn walk_markdown_files(root: &str) -> anyhow::Result<Vec<PostReference>> {
-    FileWalker::open(root)?
-        .filter_map(|f| match f {
-            // Filter the entrance which could not be accessed.
-            Ok(f) => Some(f),
-            Err(e) => {
-                eprintln!("Could not access entry: {e}");
-                None
+        // Do conversion that `Post/Post.md` -> `Post`
+        let rp = if let Some(last_slash) = rp.rfind("/") {
+            let article = &rp[(last_slash + 1)..];
+            // In case that rp is like `Post/Post`, do trim.
+            let postfix = format!("/{}/{}", article, article);
+            if rp.ends_with(&postfix) || rp == &postfix[1..] {
+                &rp[..last_slash]
+            } else {
+                // If rp is like `P1/1`, do nothing
+                rp
             }
-        })
-        .filter(|f| {
-            // f.ends_with() returns true only if the whole path components matches, use extension() instead.
-            f.extension() == Some("md".as_ref())
-        } )
-        .map(|f| {
-            // Read metadata and generate a PostReference.
-            open(root.as_ref(), f)
-        })
-        .collect()
+        } else {
+            rp
+        };
+
+        rp.to_string()
+    }
+
+    /// Read the metadata of a markdown file, returns a `PostReference` structure.
+    fn open(&self, full_path: PathBuf) -> anyhow::Result<PostReference> {
+        let metadata = full_path.metadata().unwrap();
+        let created = DateTime::<Local>::from(metadata.created()?);
+        let modified = DateTime::<Local>::from(metadata.modified()?);
+
+        let relative_name = self.convert_path(&full_path);
+        let result = PostReference {
+            relative_name,
+            full_path,
+            created,
+            modified,
+        };
+        Ok(result)
+    }
+
+    /// Read markdown files in `root` directory and its sub-directories and return a `PostReference` list.
+    fn walk(&self) -> anyhow::Result<Vec<PostReference>> {
+        FileWalker::open(self.root)?
+            .filter_map(|f| match f {
+                // Filter the entrance which could not be accessed.
+                Ok(f) => Some(f),
+                Err(e) => {
+                    eprintln!("Could not access entry: {e}");
+                    None
+                }
+            })
+            .filter(|f| {
+                // f.ends_with() returns true only if the whole path components matches, use extension() instead.
+                f.extension() == Some("md".as_ref())
+            } )
+            .map(|f| {
+                // Read metadata and generate a PostReference.
+                self.open(f)
+            })
+            .collect()
+    }
 }
+
