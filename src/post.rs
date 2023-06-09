@@ -1,12 +1,14 @@
-use serde::{Serialize, Deserialize};
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, Local};
 use super::discover::PostReference;
+use anyhow::{anyhow, Context, Result};
+use chrono::{DateTime, Local};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PostMetadataRaw {
     title: String,
+    #[serde(rename = "date")]
     publish_date: Option<DateTime<Local>>,
+    #[serde(rename = "updated")]
     modify_date: Option<DateTime<Local>>,
     is_hidden: Option<bool>,
     is_draft: Option<bool>,
@@ -17,16 +19,14 @@ pub struct PostMetadataRaw {
 
 #[derive(Debug)]
 enum PostFlag {
-    Hidden = 1 ,           // 0x01
+    Hidden = 1,            // 0x01
     Draft = 1 << 1,        // 0x02
     LatexEnabled = 1 << 2, // 0x04
 }
 
 // Maybe smart pointer is needed?
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct Tag {
-
-}
+struct Tag {}
 
 #[derive(Debug)]
 pub struct PostMetadata {
@@ -41,29 +41,33 @@ pub struct PostMetadata {
 #[derive(Debug)]
 pub struct Post {
     reference: PostReference,
+    raw_content: Box<str>,
 
     metadata: PostMetadata,
-    content: String,
+    body_start_pos: usize,
 }
 
-pub struct PostBuilder {
-    reference: PostReference,
-
-    metadata: Option<PostMetadata>,
-    content: Option<String>,
-}
-
-impl PostBuilder {
-
-    pub fn new(reference: PostReference) -> Self {
-        Self { reference, metadata: None, content: None }
+impl Post {
+    pub fn body(&self) -> &str {
+        &self.raw_content[self.body_start_pos..]
     }
+}
 
-    pub fn read(mut self) -> Result<Self> {
-        let path = &self.reference.full_path;
-        // Read file content
-        self.content = Some(std::fs::read_to_string(path)?);
-        Ok(self)
+pub struct PostParser {
+    reference: PostReference,
+    raw_content: Box<str>,
+}
+
+impl PostParser {
+    pub fn open(reference: PostReference) -> Result<Self> {
+        let path = &reference.full_path;
+        let raw_content = std::fs::read_to_string(path)?.into_boxed_str();
+
+        let result = Self {
+            reference,
+            raw_content,
+        };
+        Ok(result)
     }
 
     fn parse_header(&self, yaml_header: &str) -> Result<PostMetadata> {
@@ -80,7 +84,12 @@ impl PostBuilder {
             flag |= PostFlag::LatexEnabled as u32;
         }
 
-        let PostMetadataRaw {title, publish_date, modify_date, .. } = raw_metadata;
+        let PostMetadataRaw {
+            title,
+            publish_date,
+            modify_date,
+            ..
+        } = raw_metadata;
         let publish_date = publish_date.unwrap_or(self.reference.created);
         let modify_date = modify_date.unwrap_or(self.reference.modified);
         let result = PostMetadata {
@@ -93,8 +102,8 @@ impl PostBuilder {
         Ok(result)
     }
 
-    fn split_markdown(&self, raw_content: &str) -> Result<(PostMetadata, String)> {
-        let raw_content = raw_content.trim_start();
+    fn split(&self) -> Result<(PostMetadata, usize)> {
+        let raw_content = self.raw_content.trim_start();
 
         if !raw_content.starts_with("---\n") {
             return Err(anyhow!("metadata undetected."));
@@ -102,39 +111,30 @@ impl PostBuilder {
         // 4 is the length of "---\n"
         // raw_content[4..].find() skipped the first four chars, so the index that find() returned should be added 4, makes
         // the index is the offset relative to raw_content[0].
-        let end = 4 + raw_content[4..].find("\n---\n").ok_or_else(|| anyhow!("metadata end is not found."))?;
+        let end = 4 + raw_content[4..]
+            .find("\n---\n")
+            .ok_or_else(|| anyhow!("metadata end is not found."))?;
         let header = &raw_content[4..end];
-        let body = &raw_content[end+9..];
 
-        let metadata = self.parse_header(header)?;
-        Ok((metadata, body.to_string()))
+        let metadata = self
+            .parse_header(header)
+            .with_context(|| format!("failed to parse header: \n{}", header))?;
+        Ok((metadata, end + 9))
     }
 
-    pub fn parse(mut self) -> Result<Self> {
-        if self.content.is_none() {
-            panic!("read() function should be called before build().");
-        }
-
-        let raw_content = self.content.clone().unwrap();  // Avoid clone()
-        let (metadata, content) = self.split_markdown(&raw_content)?;
-        self.metadata = Some(metadata);
-        self.content = Some(content);
-        Ok(self)
-    }
-
-    pub fn build(self) -> Post {
-        let Self { reference, metadata, content } = self;
-
-        if metadata.is_none() {
-            panic!("parse() function should be called before build().");
-        }
-        let metadata = metadata.unwrap();
-        let content = content.unwrap();
-
-        Post {
+    pub fn parse(self) -> Result<Post> {
+        let (metadata, body_index) = self.split()?;
+        let PostParser {
             reference,
+            raw_content,
+            ..
+        } = self;
+
+        Ok(Post {
+            reference,
+            raw_content,
             metadata,
-            content,
-        }
+            body_start_pos: body_index,
+        })
     }
 }
