@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display, Formatter};
 
 use super::datetime::datetime_serde;
 use super::discover::PostReference;
@@ -19,8 +20,8 @@ pub struct PostMetadataRaw {
     tag: Vec<String>,
 }
 
-#[derive(Debug)]
-enum PostFlag {
+#[derive(Clone, Copy, strum::Display, strum::EnumIter)]
+enum PostFlagEnum {
     Hidden = 1,            // 0x01
     Draft = 1 << 1,        // 0x02
     LatexEnabled = 1 << 2, // 0x04
@@ -30,12 +31,65 @@ enum PostFlag {
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct Tag {}
 
+pub struct PostFlag(u32);
+
+impl PostFlag {
+    pub fn new() -> Self {
+        PostFlag(0)
+    }
+
+    pub fn is_hidden(&self) -> bool {
+        self.0 & (PostFlagEnum::Hidden as u32) != 0
+    }
+
+    pub fn is_draft(&self) -> bool {
+        self.0 & (PostFlagEnum::Draft as u32) != 0
+    }
+
+    pub fn is_latex_enabled(&self) -> bool {
+        self.0 & (PostFlagEnum::LatexEnabled as u32) != 0
+    }
+
+    pub fn set_hidden(&mut self) {
+        self.0 |= (PostFlagEnum::Hidden as u32);
+    }
+
+    pub fn set_draft(&mut self) {
+        self.0 |= (PostFlagEnum::Draft as u32);
+    }
+
+    pub fn set_latex_enabled(&mut self) {
+        self.0 |= (PostFlagEnum::LatexEnabled as u32);
+    }
+}
+
+impl Display for PostFlag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        use strum::IntoEnumIterator;
+
+        let mut v = vec![];
+        for flag in PostFlagEnum::iter() {
+            if self.0 & (flag as u32) != 0 {
+                v.push(flag.to_string());
+            }
+        }
+        let result = format!("[{}]", v.join(", "));
+        std::fmt::Display::fmt(&result, f)
+    }
+}
+
+impl Debug for PostFlag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self, f)
+    }
+}
+
 #[derive(Debug)]
 pub struct PostMetadata {
     title: String,
     publish_date: DateTime<Local>,
     modify_date: DateTime<Local>,
-    flag: u32,
+    flag: PostFlag,
 
     tag: Vec<Tag>,
 }
@@ -75,15 +129,15 @@ impl PostParser {
     fn parse_header(&self, yaml_header: &str) -> Result<PostMetadata> {
         let raw_metadata: PostMetadataRaw = serde_yaml::from_str(&yaml_header)?;
 
-        let mut flag = 0;
+        let mut flag = PostFlag::new();
         if raw_metadata.is_draft.unwrap_or(false) {
-            flag |= PostFlag::Draft as u32;
+            flag.set_draft();
         }
         if raw_metadata.is_hidden.unwrap_or(false) {
-            flag |= PostFlag::Hidden as u32;
+            flag.set_hidden();
         }
         if raw_metadata.use_latex.unwrap_or(false) {
-            flag |= PostFlag::LatexEnabled as u32;
+            flag.set_latex_enabled();
         }
 
         let PostMetadataRaw {
