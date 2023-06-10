@@ -1,7 +1,6 @@
 /// Reference: https://stackoverflow.com/questions/67803619/using-serdeserialize-with-optionchronodatetime
 pub mod datetime_serde {
     use chrono::{DateTime, Local, TimeZone};
-    use serde::de::Unexpected::Str;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%Y-%m-%d %H:%M";
@@ -22,9 +21,6 @@ pub mod datetime_serde {
     where
         D: Deserializer<'de>,
     {
-        use serde::de::Unexpected::Str;
-        use serde::de::{Expected, Unexpected};
-
         if let Some(string) = Option::<String>::deserialize(deserializer)? {
             let date = Local.datetime_from_str(&string, FORMAT).map_err(|_| {
                 serde::de::Error::custom(format!(

@@ -1,7 +1,8 @@
+use std::fmt::{Debug, Display, Formatter};
+
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
 
 use super::datetime::datetime_serde;
 use super::discover::PostReference;
@@ -51,15 +52,15 @@ impl PostFlag {
     }
 
     pub fn set_hidden(&mut self) {
-        self.0 |= (PostFlagEnum::Hidden as u32);
+        self.0 |= PostFlagEnum::Hidden as u32;
     }
 
     pub fn set_draft(&mut self) {
-        self.0 |= (PostFlagEnum::Draft as u32);
+        self.0 |= PostFlagEnum::Draft as u32;
     }
 
     pub fn set_latex_enabled(&mut self) {
-        self.0 |= (PostFlagEnum::LatexEnabled as u32);
+        self.0 |= PostFlagEnum::LatexEnabled as u32;
     }
 }
 
@@ -127,7 +128,7 @@ impl PostParser {
     }
 
     fn parse_header(&self, yaml_header: &str) -> Result<PostMetadata> {
-        let raw_metadata: PostMetadataRaw = serde_yaml::from_str(&yaml_header)?;
+        let raw_metadata: PostMetadataRaw = serde_yaml::from_str(yaml_header)?;
 
         let mut flag = PostFlag::new();
         if raw_metadata.is_draft.unwrap_or(false) {

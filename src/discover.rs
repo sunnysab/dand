@@ -1,6 +1,7 @@
-use chrono::{DateTime, Local};
 use std::fs::{self, ReadDir};
 use std::path::{Path, PathBuf};
+
+use chrono::{DateTime, Local};
 
 /// Iterator over the entries in a directory and its sub-directories.
 struct FileWalker {
@@ -84,7 +85,7 @@ pub trait ReadSingleFile {
 
 pub trait WalkDirectory<'a> {
     /// Create a new `PostWalker` instance for a certain directory.
-    fn new(root: &'a str) -> PostWalker;
+    fn new(root: &'a str) -> Self;
     /// Parse file path, detect section name from path.
     fn convert_path(&self, relative_path: &Path) -> String;
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
@@ -135,7 +136,7 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a> {
     ///     println!("{:#?}", file);
     /// }
     /// ```
-    fn new(root: &'a str) -> PostWalker {
+    fn new(root: &'a str) -> Self {
         let root_directory = Path::new(root);
         Self {
             root: root_directory,
@@ -186,7 +187,7 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a> {
         };
 
         // Improve readability by always using '/'
-        rp.replace("\\", "/")
+        rp.replace('\\', "/")
     }
 
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
