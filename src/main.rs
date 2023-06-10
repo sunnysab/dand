@@ -2,6 +2,7 @@ use crate::discover::PostWalker;
 use crate::post::PostParser;
 use std::path::PathBuf;
 
+mod datetime;
 mod discover;
 mod post;
 

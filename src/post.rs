@@ -1,14 +1,16 @@
-use super::discover::PostReference;
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
+use super::datetime::datetime_serde;
+use super::discover::PostReference;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PostMetadataRaw {
     title: String,
-    #[serde(rename = "date")]
+    #[serde(rename = "date", with = "datetime_serde")]
     publish_date: Option<DateTime<Local>>,
-    #[serde(rename = "updated")]
+    #[serde(rename = "updated", with = "datetime_serde")]
     modify_date: Option<DateTime<Local>>,
     is_hidden: Option<bool>,
     is_draft: Option<bool>,
