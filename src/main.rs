@@ -6,6 +6,7 @@ use post::PostParser;
 mod datetime;
 mod discover;
 mod post;
+mod site;
 
 fn main() {
     let path = PathBuf::from(String::from("/home/sunnysab/blog-test.md"));
