@@ -53,4 +53,11 @@ impl Post {
     pub fn body(&self) -> &str {
         &self.raw_content[self.body_start_pos..]
     }
+
+    pub fn expected_url(&self) -> String {
+        let site = &super::site().home;
+        let relative_name = &self.reference.relative_name;
+
+        format!("{site}{relative_name}")
+    }
 }
