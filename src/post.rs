@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::rc::Rc;
 
 use chrono::{DateTime, Local};
@@ -72,8 +71,4 @@ impl SharedPost {
     pub fn add_tag(&self, tag: &SharedTag) {
         self.0.borrow_mut().metadata.tags.push(tag.clone());
     }
-
-    // pub fn tags(&self) -> &Vec<SharedTag> {
-    //     &self.0.borrow().metadata.tags
-    // }
 }

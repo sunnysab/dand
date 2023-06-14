@@ -1,10 +1,9 @@
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::rc::Rc;
 
-use crate::post::{Post, SharedPost};
+use crate::post::SharedPost;
 
 #[derive(Default)]
 pub struct Tag {
@@ -77,7 +76,7 @@ impl From<Vec<SharedTag>> for TagSet {
         let tags = tags
             .into_iter()
             .map(|tag| {
-                let name = (&tag.0.borrow().name).clone();
+                let name = tag.0.borrow().name.clone();
                 (name, tag)
             })
             .collect();

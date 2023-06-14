@@ -1,12 +1,8 @@
-use std::cell::RefCell;
-use std::ops::Deref;
-use std::rc::Rc;
-
 use anyhow::Result;
 
 use crate::discover::{PostWalker, WalkDirectory};
-use crate::post::tag::{SharedTag, TagSet};
-use crate::post::{Post, PostParser, SharedPost};
+use crate::post::tag::TagSet;
+use crate::post::{PostParser, SharedPost};
 
 pub struct Environment {
     tags: TagSet,
@@ -26,7 +22,7 @@ impl Environment {
 
         for pr in post_references {
             // Read each post
-            let mut post = PostParser::open(pr)?.parse()?;
+            let post = PostParser::open(pr)?.parse()?;
             let shared_post = SharedPost::from(post);
 
             let new_tags = &shared_post.0.borrow().metadata.tags;

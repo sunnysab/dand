@@ -1,18 +1,15 @@
-use std::path::PathBuf;
-
 use discover::PostWalker;
-use post::PostParser;
+use site::get as site;
 
 mod datetime;
 mod discover;
+mod env;
 mod post;
 mod site;
 
 fn main() {
-    let path = PathBuf::from(String::from("/home/sunnysab/blog-test.md"));
-    let file = <PostWalker<'_> as discover::ReadSingleFile>::open(path).unwrap();
-    println!("{:#?}", file);
-
-    let post = PostParser::open(file).unwrap().parse().unwrap();
-    println!("{:#?}", post);
+    let walker =
+        <PostWalker<'_> as discover::WalkDirectory>::new("/home/sunnysab/Blog/source/_posts/");
+    let _env = env::Environment::new().walk(walker).unwrap();
+    // println!("{:#?}", env);
 }

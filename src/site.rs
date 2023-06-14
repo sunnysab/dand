@@ -19,9 +19,8 @@ pub struct Site {
 fn load_site_config() -> Site {
     let toml_content =
         std::fs::read_to_string(SITE_CONFIG_FILE).expect("Unable to load site config.");
-    let site = toml::from_str(&toml_content).expect("Failed to parse site config.");
 
-    site
+    toml::from_str(&toml_content).expect("Failed to parse site config.")
 }
 
 pub fn get() -> &'static Site {
