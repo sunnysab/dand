@@ -192,7 +192,7 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a> {
 
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
     fn open(&self, full_path: PathBuf) -> anyhow::Result<PostReference> {
-        let metadata = full_path.metadata().unwrap();
+        let metadata = full_path.metadata()?;
         let created = DateTime::<Local>::from(metadata.created()?);
         let modified = DateTime::<Local>::from(metadata.modified()?);
 

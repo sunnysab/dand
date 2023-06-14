@@ -1,4 +1,8 @@
+use std::rc::Rc;
+
 use anyhow::{anyhow, Context, Result};
+
+use crate::post::tag::SharedTag;
 
 use super::{Post, PostFlag, PostMetadata, PostMetadataRaw, PostReference};
 
@@ -37,16 +41,19 @@ impl PostParser {
             title,
             publish_date,
             modify_date,
+            tags,
             ..
         } = raw_metadata;
         let publish_date = publish_date.unwrap_or(self.reference.created);
         let modify_date = modify_date.unwrap_or(self.reference.modified);
+
+        let shared_tags = tags.into_iter().map(|tag| SharedTag::new(&tag)).collect();
         let result = PostMetadata {
             title,
             publish_date,
             modify_date,
             flag,
-            tag: vec![],
+            tags: shared_tags,
         };
         Ok(result)
     }
@@ -81,7 +88,7 @@ impl PostParser {
 
         Ok(Post {
             reference,
-            raw_content,
+            raw_content: Rc::new(raw_content),
             metadata,
             body_start_pos: body_index,
         })
