@@ -18,11 +18,13 @@ mod flag;
 mod parser;
 pub mod tag;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct RawFrontMatter {
     pub title: String,
+    #[serde(default)]
     #[serde(rename = "date", with = "datetime_serde")]
     pub publish_date: Option<DateTime<Local>>,
+    #[serde(default)]
     #[serde(rename = "updated", with = "datetime_serde")]
     pub modify_date: Option<DateTime<Local>>,
     pub is_hidden: Option<bool>,
