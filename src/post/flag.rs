@@ -39,6 +39,27 @@ impl PostFlag {
     pub fn set_latex_enabled(&mut self) {
         self.0 |= PostFlagEnum::LatexEnabled as u32;
     }
+
+    pub fn with_hidden_flag(mut self, set: bool) -> Self {
+        if set {
+            self.0 |= PostFlagEnum::Hidden as u32;
+        }
+        self
+    }
+
+    pub fn with_draft_flag(mut self, set: bool) -> Self {
+        if set {
+            self.0 |= PostFlagEnum::Draft as u32;
+        }
+        self
+    }
+
+    pub fn with_latex_enabled_flag(mut self, set: bool) -> Self {
+        if set {
+            self.0 |= PostFlagEnum::LatexEnabled as u32;
+        }
+        self
+    }
 }
 
 impl Display for PostFlag {

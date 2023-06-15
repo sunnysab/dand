@@ -1,17 +1,16 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::post::SharedPost;
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct Tag {
     pub name: String,
     pub related_posts: Vec<SharedPost>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SharedTag(Rc<RefCell<Tag>>);
 
 impl SharedTag {

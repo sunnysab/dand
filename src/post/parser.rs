@@ -1,17 +1,15 @@
-use std::rc::Rc;
-
 use anyhow::{anyhow, bail, Context, Result};
 
-use super::tag::SharedTag;
-use super::{Post, PostFlag, PostMetadata, PostReference, RawFrontMatter};
+use super::RawFrontMatter;
 
-fn split(full_content: &str) -> Result<(RawFrontMatter, &str)> {
+pub fn split(full_content: &str) -> Result<(RawFrontMatter, &str)> {
     let raw_content = full_content.trim_start();
 
     fn find_header_end(raw_content: &str, separator: &str) -> Result<usize> {
-        4 + raw_content[4..]
+        raw_content[4..]
             .find(separator)
-            .ok_or_else(|| anyhow!("Could not find the end of the header"))
+            .map(|x| x + 4)
+            .ok_or_else(|| anyhow!("the end separator of the header is not found."))
     }
 
     let (header, end): (Result<RawFrontMatter>, usize) = if raw_content.starts_with("---\n") {
@@ -26,8 +24,8 @@ fn split(full_content: &str) -> Result<(RawFrontMatter, &str)> {
 
         (header, end)
     } else {
-        bail!("Could not find the start of the header");
+        bail!("no front header detected.");
     };
-    let header = header.with_context("Could not parse the front matter")?;
-    Ok((header, &full_content[end + 9..]))
+    let header = header.with_context(|| "Could not parse the front matter".to_string())?;
+    Ok((header, &full_content[end + 4..]))
 }
