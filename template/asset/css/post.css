@@ -1,0 +1,62 @@
+
+article a:link {
+    text-decoration: underline dashed grey 1px;
+}
+
+article a:hover {
+    text-decoration: underline dashed black 1.2px;
+}
+
+.post-date {
+}
+
+.article-metadata {
+    margin-bottom: 10px;
+}
+
+p {
+    text-indent: 2em;
+    margin: 0;
+}
+
+li p {
+    text-indent: inherit;
+}
+
+code {
+    background-color: rgba(0, 0, 0, 0.05);
+    line-height: 1.2em;
+    font-size: 75%;
+}
+
+/* Inline code: p > code, code block: pre > code */
+p > code {
+    padding: 0px 4px;
+}
+
+p > img {
+    display: block;
+    text-align: center;
+    max-width: calc(100% - 2em);
+    margin: 8px 0;
+}
+
+blockquote * {
+    font-style: italic;
+}
+
+table {
+    width: 100%;
+}
+
+thead, tfoot {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+tbody td {
+    border-bottom: solid 1px rgba(0, 0, 0, 0.5);
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}

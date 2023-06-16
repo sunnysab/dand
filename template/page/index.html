@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% if category %}
+    <title>{{ category + ' - ' + site.title }}</title>
+    {% else %}
+    <title>{{ site.title }}</title>
+    {% endif %}
+    <meta content="dand" name=generator>
+    <meta content="website" property="og:type">
+    <meta content="{{ site.description }}" property="description">
+    <link href="asset/css/main.css" rel="stylesheet">
+    <script language="JavaScript" src="asset/js/display.js"></script>
+</head>
+<body>
+<header class="header">
+    <div class="nav-logo"><h1 class="font-sans"><a href="{{ site.home }}">{{ site.title }}</a></h1></div>
+    <nav class="nav">
+        <ul class="nav-links">
+            <li>关于</li>
+        </ul>
+    </nav>
+</header>
+<main>
+    {% if category %}<h2>{{ category }}</h2>{% endif %}
+    <ul id="post-list">
+        {% for post in posts %}
+        {% if not post.raw_post.is_hidden %}
+        <li>
+            <a href="{{ post.get_dst_url() }}">{{ post.raw_post.title }}</a>
+            <span class="post-date">{{ post.raw_post.publish_date }}</span>
+        </li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</main>
+<!-- copyright -->
+<footer>
+    {% include 'layout/copyright.html' %}
+</footer>
+</body>
+<script language="JavaScript">
+    replaceDateString("#post-list > li > span");
+</script>
+</html>
