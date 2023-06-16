@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
 use crate::post::SharedPost;
@@ -10,7 +11,7 @@ pub struct Tag {
     pub related_posts: Vec<SharedPost>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SharedTag(Rc<RefCell<Tag>>);
 
 impl SharedTag {
@@ -28,12 +29,27 @@ impl SharedTag {
 
         post.add_tag(self)
     }
+}
 
-    pub fn merge_with(&self, other: &Self) {
-        let other = &other.0.borrow().related_posts;
-        for post in other {
-            self.relate(post);
-        }
+impl Display for SharedTag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let tag = RefCell::borrow(&self.0);
+
+        let name = tag.name.as_str();
+        let posts = tag
+            .related_posts
+            .iter()
+            .take(3)
+            .fold(String::new(), |l, e| {
+                l + &e.0.borrow().metadata.title + ", "
+            });
+        write!(f, "SharedTag ({name}) [{posts}...]")
+    }
+}
+
+impl Debug for SharedTag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
     }
 }
 
@@ -59,26 +75,5 @@ impl TagSet {
 
             shared_new_tag
         }
-    }
-
-    pub fn merge(&mut self, other: &Self) {
-        for (key, value) in &other.tags {
-            if let Some(existed_tag) = self.tags.get(key) {
-                existed_tag.merge_with(value);
-            }
-        }
-    }
-}
-
-impl From<Vec<SharedTag>> for TagSet {
-    fn from(tags: Vec<SharedTag>) -> Self {
-        let tags = tags
-            .into_iter()
-            .map(|tag| {
-                let name = tag.0.borrow().name.clone();
-                (name, tag)
-            })
-            .collect();
-        Self { tags }
     }
 }
