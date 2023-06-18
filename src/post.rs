@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::{DateTime, Local};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use flag::PostFlag;
 
@@ -16,6 +16,7 @@ use super::discover::PostReference;
 
 mod flag;
 mod parser;
+mod render;
 pub mod tag;
 
 #[derive(Debug, Deserialize)]
@@ -131,5 +132,11 @@ impl LoadedPost {
         }
         env.add_post(shared_post.clone());
         Ok(shared_post)
+    }
+}
+
+impl SharedPost {
+    pub fn renderer(&self) -> render::PostRenderer {
+        render::PostRenderer::new(self.0.borrow().body)
     }
 }
