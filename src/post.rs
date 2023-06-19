@@ -47,7 +47,11 @@ pub struct Metadata {
 #[derive(Debug)]
 pub struct Post {
     pub reference: PostReference,
-    pub raw_content: Rc<Box<str>>,
+    /// The raw content of the post.
+    ///
+    /// As user, do not do any modification on this, because the `body` field
+    /// is refer to this. Update may lead to re-alloc or shrink, and make `body` unavailable.
+    pub raw_content: String,
 
     pub metadata: Metadata,
     pub body: &'static str,
@@ -77,7 +81,7 @@ impl SharedPost {
 
 pub struct LoadedPost {
     pub reference: PostReference,
-    pub full_content: Box<str>,
+    pub full_content: String,
 
     pub front_matter: RawFrontMatter,
     pub body: &'static str,
@@ -86,7 +90,7 @@ pub struct LoadedPost {
 pub fn load(reference: PostReference) -> Result<LoadedPost> {
     let path = &reference.full_path;
 
-    let full_content = std::fs::read_to_string(path)?.into_boxed_str();
+    let full_content = std::fs::read_to_string(path)?;
     let (front_matter, body) = parser::split(&full_content)?;
 
     let body: &'static str = unsafe { std::mem::transmute(body) };
@@ -120,7 +124,7 @@ impl LoadedPost {
         };
         let post = Post {
             reference,
-            raw_content: Rc::new(full_content),
+            raw_content: full_content,
             metadata,
             body,
         };
