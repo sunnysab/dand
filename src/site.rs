@@ -5,7 +5,7 @@ use serde::Deserialize;
 const SITE_CONFIG_FILE: &str = "site.toml";
 static PRIVATE_SITE_CONFIG: OnceLock<Site> = OnceLock::new();
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 /// Site basic information and description.
 pub struct Site {
     /// Blog name

@@ -74,8 +74,14 @@ pub struct PostReference {
     pub modified: DateTime<Local>,
 }
 
-pub struct PostWalker<'a> {
-    root: &'a Path,
+pub struct PostWalker {
+    root: PathBuf,
+}
+
+impl From<PathBuf> for PostWalker {
+    fn from(root: PathBuf) -> Self {
+        Self { root }
+    }
 }
 
 pub trait ReadSingleFile {
@@ -83,9 +89,9 @@ pub trait ReadSingleFile {
     fn open(full_path: PathBuf) -> anyhow::Result<PostReference>;
 }
 
-pub trait WalkDirectory<'a> {
+pub trait WalkDirectory {
     /// Create a new `PostWalker` instance for a certain directory.
-    fn new(root: &'a str) -> Self;
+    fn new(root: &'static str) -> Self;
     /// Parse file path, detect section name from path.
     fn convert_path(&self, relative_path: &Path) -> String;
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
@@ -94,7 +100,7 @@ pub trait WalkDirectory<'a> {
     fn walk(&self) -> anyhow::Result<Vec<PostReference>>;
 }
 
-impl ReadSingleFile for PostWalker<'_> {
+impl ReadSingleFile for PostWalker {
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
     ///
     /// Example:
@@ -123,7 +129,7 @@ impl ReadSingleFile for PostWalker<'_> {
     }
 }
 
-impl<'a> WalkDirectory<'a> for PostWalker<'a> {
+impl WalkDirectory for PostWalker {
     /// Create a new `PostWalker` instance for a certain directory.
     ///
     /// Example:
@@ -136,11 +142,9 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a> {
     ///     println!("{:#?}", file);
     /// }
     /// ```
-    fn new(root: &'a str) -> Self {
-        let root_directory = Path::new(root);
-        Self {
-            root: root_directory,
-        }
+    fn new(root: &'static str) -> Self {
+        let root = PathBuf::from(root);
+        Self { root }
     }
 
     /// Parse file path, detect section name from path.
@@ -162,7 +166,7 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a> {
         let (separator, index) = ("/", "/index");
 
         // Relative path
-        let rp = match full_path.strip_prefix(self.root) {
+        let rp = match full_path.strip_prefix(&self.root) {
             Ok(p) => p,
             Err(_) => full_path,
         }
@@ -208,7 +212,7 @@ impl<'a> WalkDirectory<'a> for PostWalker<'a> {
 
     /// Read markdown files in `root` directory and its sub-directories and return a `PostReference` list.
     fn walk(&self) -> anyhow::Result<Vec<PostReference>> {
-        FileWalker::open(self.root)?
+        FileWalker::open(&self.root)?
             .filter_map(|f| match f {
                 // Filter the entrance which could not be accessed.
                 Ok(f) => Some(f),
