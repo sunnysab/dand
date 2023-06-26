@@ -26,6 +26,6 @@ pub fn split(full_content: &str) -> Result<(RawFrontMatter, &str)> {
     } else {
         bail!("no front header detected.");
     };
-    let header = header.with_context(|| "Could not parse the front matter".to_string())?;
+    let header = header.map_err(|e| anyhow!("Could not parse the front matter, {e}"))?;
     Ok((header, &full_content[end + 4..]))
 }

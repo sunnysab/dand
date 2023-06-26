@@ -103,7 +103,7 @@ pub fn load(reference: PostReference) -> Result<LoadedPost> {
 }
 
 impl LoadedPost {
-    pub fn build(self, env: &mut Environment) -> Result<SharedPost> {
+    pub fn build(self, env: &mut Environment) -> SharedPost {
         let LoadedPost {
             reference,
             full_content,
@@ -135,7 +135,7 @@ impl LoadedPost {
             tags.add(tag, &shared_post);
         }
         env.add_post(shared_post.clone());
-        Ok(shared_post)
+        shared_post
     }
 }
 

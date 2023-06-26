@@ -3,7 +3,7 @@ pub mod datetime_serde {
     use chrono::{DateTime, Local, TimeZone};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    const FORMAT: [&str; 3] = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"];
+    const FORMAT: [&str; 2] = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"];
 
     pub fn serialize<S>(date: &Option<DateTime<Local>>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -22,13 +22,25 @@ pub mod datetime_serde {
         D: Deserializer<'de>,
     {
         if let Some(string) = Option::<String>::deserialize(deserializer)? {
-            for date_format in FORMAT {
-                if let Ok(date) = Local.datetime_from_str(&string, date_format) {
-                    return Ok(Some(date));
+            // Pure date, in format "%Y-%m-%d"
+            if string.len() <= 4 + 1 + 2 + 1 + 2 {
+                let date = string.as_str();
+                let datetime = format!("{date} 00:00:00");
+                if let Ok(result) = Local.datetime_from_str(&datetime, FORMAT[0]) {
+                    return Ok(Some(result));
+                }
+            } else {
+                // Date and time
+                let datetime = string.as_str();
+                for dt_format in FORMAT {
+                    if let Ok(dt) = Local.datetime_from_str(datetime, dt_format) {
+                        return Ok(Some(dt));
+                    }
                 }
             }
+
             return Err(serde::de::Error::custom(format!(
-                "invalid date: {}, please make date with any of formats: {}.",
+                "invalid date: {}, please make datetime in any of following formats: {} or put pure date %Y-%m-%d.",
                 string,
                 FORMAT.join(", ")
             )));

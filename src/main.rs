@@ -81,7 +81,11 @@ impl BlogBuilder {
         let mut env = Environment::new();
         let walker = PostWalker::from(path.clone());
         for post_ref in walker.walk()?.into_iter() {
-            post::load(post_ref)?.build(&mut env)?;
+            let path = post_ref.full_path.display().to_string();
+
+            post::load(post_ref)
+                .with_context(|| format!("failed to load post: {}", path))?
+                .build(&mut env);
         }
 
         Ok(Blog {
