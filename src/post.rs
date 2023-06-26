@@ -59,7 +59,7 @@ pub struct Post {
 
 impl Post {
     pub fn expected_url(&self) -> String {
-        let site = &super::site().home;
+        let site = "https://example.com/";
         let relative_name = &self.reference.relative_name;
 
         format!("{site}{relative_name}")

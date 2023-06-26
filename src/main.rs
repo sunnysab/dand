@@ -4,13 +4,12 @@ use std::str::FromStr;
 use anyhow::{anyhow, bail, Context, Result};
 
 use discover::PostWalker;
-use site::get as site;
 
 use crate::discover::WalkDirectory;
 use crate::env::Environment;
 use crate::index::IndexRenderer;
 use crate::render::Render;
-use crate::site::Site;
+use crate::site::SiteConf;
 
 mod datetime;
 mod discover;
@@ -22,7 +21,7 @@ mod site;
 
 #[derive(Default)]
 struct BlogBuilder {
-    site: Option<Site>,
+    site: Option<SiteConf>,
 
     path: Option<PathBuf>,
     output_dir: Option<PathBuf>,
@@ -47,17 +46,19 @@ impl BlogBuilder {
 
     fn output_dir(self, path: &str) -> Result<Self> {
         let path = PathBuf::from_str(path)?;
-        if !path.is_dir() {
-            bail!("output directory must be a directory");
-        }
+        // Checks against this path will be deferred until build()
+        // if !path.is_dir() {
+        //     bail!("output directory must be a directory");
+        // }
 
         let output_dir = Some(path);
         Ok(Self { output_dir, ..self })
     }
 
-    fn site(self, site: Site) -> Self {
-        let site = Option::from(site);
-        Self { site, ..self }
+    fn conf(self, site_conf: &str) -> Result<Self> {
+        let conf = SiteConf::load(site_conf)?;
+        let site = Option::from(conf);
+        Ok(Self { site, ..self })
     }
 
     fn build(self) -> Result<Blog> {
@@ -93,7 +94,7 @@ impl BlogBuilder {
 }
 
 struct Blog {
-    site: Site,
+    site: SiteConf,
     path: PathBuf,
     output_dir: PathBuf,
     env: Environment,
@@ -110,11 +111,10 @@ impl Blog {
 }
 
 fn main() -> anyhow::Result<()> {
-    let site = site::get();
     let blog = BlogBuilder::new()
         .src_dir("/home/sunnysab/Blog/source/_posts/")?
         .output_dir("/home/sunnysab/Blog/output/")?
-        .site(Clone::clone(site))
+        .conf("/home/sunnysab/Blog/source/_posts/dand.toml")?
         .build()?;
 
     Ok(())

@@ -273,9 +273,9 @@ dependencies = [
     "android_system_properties",
     "core-foundation-sys",
     "iana-time-zone-haiku",
- "js-sys",
- "wasm-bindgen",
- "windows",
+    "js-sys",
+    "wasm-bindgen",
+    "windows",
 ]
 
 [[package]]

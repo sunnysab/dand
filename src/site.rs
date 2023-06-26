@@ -1,13 +1,13 @@
-use std::sync::OnceLock;
+use std::path::Path;
 
+use anyhow::{Context, Result};
 use serde::Deserialize;
 
-const SITE_CONFIG_FILE: &str = "site.toml";
-static PRIVATE_SITE_CONFIG: OnceLock<Site> = OnceLock::new();
+const SITE_CONFIG_FILE: &str = "dand.toml";
 
 #[derive(Clone, Deserialize)]
 /// Site basic information and description.
-pub struct Site {
+pub struct SiteConf {
     /// Blog name
     pub title: String,
     /// Complete home url to the site, e.g. https://example.com/
@@ -16,13 +16,13 @@ pub struct Site {
     pub description: String,
 }
 
-fn load_site_config() -> Site {
-    let toml_content =
-        std::fs::read_to_string(SITE_CONFIG_FILE).expect("Unable to load site config.");
+impl SiteConf {
+    pub fn load(conf_path: impl AsRef<Path>) -> Result<SiteConf> {
+        let conf_path: &Path = conf_path.as_ref();
+        let toml_content = std::fs::read_to_string(conf_path)
+            .with_context(|| format!("failed to load site config: {}", conf_path.display()))?;
 
-    toml::from_str(&toml_content).expect("Failed to parse site config.")
-}
-
-pub fn get() -> &'static Site {
-    PRIVATE_SITE_CONFIG.get_or_init(load_site_config)
+        toml::from_str(&toml_content)
+            .with_context(|| format!("failed to parse site config: {}", conf_path.display()))
+    }
 }
