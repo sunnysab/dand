@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     {% if category %}
-    <title>{{ category + ' - ' + site.title }}</title>
+    <title>{{ category ~ ' - ' ~ site.title }}</title>
     {% else %}
     <title>{{ site.title }}</title>
     {% endif %}
@@ -11,7 +11,7 @@
     <meta content="website" property="og:type">
     <meta content="{{ site.description }}" property="description">
     <link href="asset/css/main.css" rel="stylesheet">
-    <script language="JavaScript" src="asset/js/display.js"></script>
+    <script src="asset/js/display.js" type="application/javascript"></script>
 </head>
 <body>
 <header class="header">
@@ -28,7 +28,7 @@
         {% for post in posts %}
         {% if not post.raw_post.is_hidden %}
         <li>
-            <a href="{{ post.get_dst_url() }}">{{ post.raw_post.title }}</a>
+            <a href="{{ post.url }}">{{ post.raw_post.title }}</a>
             <span class="post-date">{{ post.raw_post.publish_date }}</span>
         </li>
         {% endif %}
@@ -40,7 +40,7 @@
     {% include 'layout/copyright.html' %}
 </footer>
 </body>
-<script language="JavaScript">
+<script type="application/javascript">
     replaceDateString("#post-list > li > span");
 </script>
 </html>
