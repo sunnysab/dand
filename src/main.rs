@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -105,11 +105,51 @@ struct Blog {
 }
 
 impl Blog {
-    fn render(&self) -> Result<()> {
+    fn render_html(&self) -> Result<()> {
         let index_render = IndexRenderer::new(&self.site, &self.env);
         let index_html = index_render.html()?;
 
-        println!("{index_html}");
+        let mut index_file = self.output_dir.clone();
+        index_file.push("index.html");
+
+        std::fs::write(&index_file, &index_html)?;
+        Ok(())
+    }
+
+    fn copy_assets(&self) -> Result<()> {
+        // TODO: Copy assets when it necessary
+
+        fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
+            use std::fs;
+
+            if !dst.exists() {
+                fs::create_dir_all(dst)?;
+            }
+            for entry in fs::read_dir(src)? {
+                let entry = entry?;
+                let path = entry.path();
+                let dst_path = dst.join(path.file_name().unwrap());
+
+                if entry.file_type()?.is_dir() {
+                    copy_dir(&path, &dst_path)?;
+                } else {
+                    fs::copy(&path, &dst_path)?;
+                }
+            }
+            Ok(())
+        }
+
+        // let src_dir = self.path.join("asset");
+        let src_dir = PathBuf::from("/home/sunnysab/Projects/dand/template/asset".to_string());
+        let dst_dir = self.output_dir.join("asset");
+        println!("src_dir: {src_dir:?}\ndst_dir: {dst_dir:?}");
+        copy_dir(&src_dir, &dst_dir)?;
+        Ok(())
+    }
+
+    fn render(&self) -> Result<()> {
+        self.copy_assets()?;
+        self.render_html()?;
         Ok(())
     }
 }
