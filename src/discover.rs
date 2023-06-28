@@ -2,6 +2,7 @@ use std::fs::{self, ReadDir};
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Local};
+use serde::Serialize;
 
 /// Iterator over the entries in a directory and its sub-directories.
 struct FileWalker {
@@ -61,7 +62,7 @@ impl Iterator for FileWalker {
 }
 
 /// Reference to a markdown file
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct PostReference {
     /// Relative name is a pure file title with the column it belongs to.
     pub relative_name: String,

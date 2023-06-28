@@ -1,10 +1,11 @@
 use std::cell::RefCell;
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::{DateTime, Local};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize, Serializer};
 
 use flag::PostFlag;
 
@@ -19,7 +20,7 @@ mod parser;
 mod render;
 pub mod tag;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RawFrontMatter {
     pub title: String,
     #[serde(default)]
@@ -35,7 +36,7 @@ pub struct RawFrontMatter {
     tags: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Metadata {
     pub title: String,
     pub publish_date: DateTime<Local>,
@@ -44,7 +45,7 @@ pub struct Metadata {
     pub tags: Vec<SharedTag>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Post {
     pub reference: PostReference,
     /// The raw content of the post.
@@ -76,6 +77,16 @@ impl SharedPost {
 
     pub fn add_tag(&self, tag: &SharedTag) {
         self.0.borrow_mut().metadata.tags.push(tag.clone());
+    }
+}
+
+impl Serialize for SharedPost {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let inner = self.0.borrow();
+        Serialize::serialize(inner.deref(), serializer)
     }
 }
 

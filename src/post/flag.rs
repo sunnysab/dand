@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 
+use serde::Serialize;
+
 #[derive(Clone, Copy, strum::Display, strum::EnumIter)]
 pub enum PostFlagEnum {
     Hidden = 1,
@@ -9,6 +11,7 @@ pub enum PostFlagEnum {
     LatexEnabled = 1 << 2, // 0x04
 }
 
+#[derive(Serialize)]
 pub struct PostFlag(u32);
 
 impl PostFlag {

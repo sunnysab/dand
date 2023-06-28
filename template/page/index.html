@@ -28,8 +28,8 @@
         {% for post in posts %}
         {% if not post.raw_post.is_hidden %}
         <li>
-            <a href="{{ post.url }}">{{ post.raw_post.title }}</a>
-            <span class="post-date">{{ post.raw_post.publish_date }}</span>
+            <a href="{{ post.reference.relative_name }}">{{ post.metadata.title }}</a>
+            <span class="post-date">{{ post.metadata.publish_date }}</span>
         </li>
         {% endif %}
         {% endfor %}

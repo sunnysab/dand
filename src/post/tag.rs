@@ -1,11 +1,14 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops::Deref;
 use std::rc::Rc;
+
+use serde::{Serialize, Serializer};
 
 use crate::post::SharedPost;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Tag {
     pub name: String,
     pub related_posts: Vec<SharedPost>,
@@ -53,6 +56,23 @@ impl Debug for SharedTag {
     }
 }
 
+impl Serialize for SharedTag {
+    /// There is a cross-reference between `Tag` and `Post` in our implementation, which will cause
+    /// Tera to overflow the stack when rendering. Therefore, we need to break this loop.
+    ///
+    /// In the implementation of `Tag`, only the `Tag` name is returned, ignoring the associated posts.
+    /// There is no need to worry about the side effects of doing this, because we do not need to
+    /// get the posts associated with the `Tag` in the template.
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let inner = self.0.borrow();
+        serializer.serialize_str(inner.name.as_str())
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct TagSet {
     tags: HashMap<String, SharedTag>,
 }

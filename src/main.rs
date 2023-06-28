@@ -106,7 +106,7 @@ struct Blog {
 
 impl Blog {
     fn render(&self) -> Result<()> {
-        let index_render = IndexRenderer::new(&self.env);
+        let index_render = IndexRenderer::new(&self.site, &self.env);
         let index_html = index_render.html()?;
 
         println!("{index_html}");
@@ -121,5 +121,6 @@ fn main() -> anyhow::Result<()> {
         .conf("/home/sunnysab/Blog/source/_posts/dand.toml")?
         .build()?;
 
+    let html = blog.render()?;
     Ok(())
 }

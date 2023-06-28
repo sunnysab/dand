@@ -1,6 +1,9 @@
+use serde::Serialize;
+
 use crate::post::tag::TagSet;
 use crate::post::SharedPost;
 
+#[derive(Debug, Serialize)]
 pub struct Environment {
     tags: TagSet,
     posts: Vec<SharedPost>,
