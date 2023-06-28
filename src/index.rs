@@ -11,10 +11,12 @@ static SITE_TEMPLATE: OnceLock<tera::Tera> = OnceLock::new();
 
 fn init_template() -> tera::Tera {
     let template_dir = "template/**/*.html";
-
-    tera::Tera::new(template_dir)
+    let mut tera = tera::Tera::new(template_dir)
         .with_context(|| format!("failed to load template from {}", template_dir))
-        .unwrap()
+        .unwrap();
+
+    tera.autoescape_on(vec![]);
+    tera
 }
 
 pub fn template() -> &'static tera::Tera {
