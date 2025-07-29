@@ -1,7 +1,25 @@
+use anyhow::Context;
 use serde::Serialize;
+use std::sync::OnceLock;
 
 use crate::post::tag::TagSet;
 use crate::post::SharedPost;
+
+static SITE_TEMPLATE: OnceLock<tera::Tera> = OnceLock::new();
+
+fn init_template() -> tera::Tera {
+    let template_dir = "template/**/*.html";
+    let mut tera = tera::Tera::new(template_dir)
+        .with_context(|| format!("failed to load template from {}", template_dir))
+        .unwrap();
+
+    tera.autoescape_on(vec![]);
+    tera
+}
+
+pub fn template() -> &'static tera::Tera {
+    SITE_TEMPLATE.get_or_init(init_template)
+}
 
 #[derive(Debug, Serialize)]
 pub struct Environment {

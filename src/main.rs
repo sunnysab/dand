@@ -8,6 +8,7 @@ use discover::PostWalker;
 use crate::discover::WalkDirectory;
 use crate::env::Environment;
 use crate::index::IndexRenderer;
+use crate::post::PostRenderer;
 use crate::render::Render;
 use crate::site::SiteConf;
 
@@ -113,6 +114,14 @@ impl Blog {
         index_file.push("index.html");
 
         std::fs::write(&index_file, &index_html)?;
+
+        for post in self.env.get_posts() {
+            let renderer = PostRenderer::new(&self.site, &post);
+            let html = renderer.html();
+            let mut html_file = self.output_dir.clone();
+            html_file.push(format!("{:?}.html", post.0.borrow().reference.full_path));
+            std::fs::write(&html_file, html)?;
+        }
         Ok(())
     }
 
@@ -140,7 +149,7 @@ impl Blog {
         }
 
         // let src_dir = self.path.join("asset");
-        let src_dir = PathBuf::from("/home/sunnysab/Projects/dand/template/asset".to_string());
+        let src_dir = PathBuf::from("/home/sunnysab/Code/dand/template/asset".to_string());
         let dst_dir = self.output_dir.join("asset");
         println!("src_dir: {src_dir:?}\ndst_dir: {dst_dir:?}");
         copy_dir(&src_dir, &dst_dir)?;

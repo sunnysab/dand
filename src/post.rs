@@ -20,6 +20,8 @@ mod parser;
 mod render;
 pub mod tag;
 
+pub use render::PostRenderer;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RawFrontMatter {
     pub title: String,
@@ -124,7 +126,7 @@ impl LoadedPost {
 
         let flag = PostFlag::new()
             .with_draft_flag(front_matter.is_draft.unwrap_or(false))
-            .with_hidden_flag(front_matter.is_hidden.unwrap_or(true))
+            .with_hidden_flag(front_matter.is_hidden.unwrap_or(false))
             .with_latex_enabled_flag(front_matter.use_latex.unwrap_or(false));
         let metadata = Metadata {
             title: front_matter.title,
@@ -147,11 +149,5 @@ impl LoadedPost {
         }
         env.add_post(shared_post.clone());
         shared_post
-    }
-}
-
-impl SharedPost {
-    pub fn renderer(&self) -> render::PostRenderer {
-        render::PostRenderer::new(self.0.borrow().body)
     }
 }
