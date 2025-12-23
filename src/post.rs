@@ -43,6 +43,7 @@ pub struct Metadata {
     pub title: String,
     pub publish_date: DateTime<Local>,
     pub modify_date: DateTime<Local>,
+    pub use_latex: bool,
     pub flag: PostFlag,
     pub tags: Vec<SharedTag>,
 }
@@ -132,6 +133,7 @@ impl LoadedPost {
             title: front_matter.title,
             publish_date: front_matter.publish_date.unwrap_or(reference.created),
             modify_date: front_matter.modify_date.unwrap_or(reference.modified),
+            use_latex: front_matter.use_latex.unwrap_or(false),
             flag,
             tags: vec![],
         };

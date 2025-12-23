@@ -14,7 +14,7 @@ impl<'a> PostRenderer<'a> {
         Self { site, post }
     }
 
-    pub fn html(&self) -> String {
+    fn render_markdown(&self) -> String {
         let options = Options::all();
         let markdown_text = self.post.0.borrow().body;
         let parser = Parser::new_ext(markdown_text, options);
@@ -30,6 +30,9 @@ impl<'a> Render for PostRenderer<'a> {
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
         parameters.insert("post", &self.post);
+
+        let content = self.render_markdown();
+        parameters.insert("content", &content);
 
         let html = template().render("page/post.html", &parameters)?;
         Ok(html)

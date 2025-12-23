@@ -17,12 +17,13 @@ impl<'a> IndexRenderer<'a> {
     }
 
     fn sorted_posts(&self) -> Vec<SharedPost> {
-        let mut sorted_posts = Clone::clone(self.env.get_posts());
+        let mut sorted_posts = self.env.get_posts().clone();
 
-        sorted_posts = sorted_posts
-            .into_iter()
-            .filter(|p| !p.0.borrow().metadata.flag.is_hidden())
-            .collect();
+        sorted_posts.retain(|post| {
+            let metadata = post.0.borrow();
+            let flag = &metadata.metadata.flag;
+            !flag.is_hidden() && !flag.is_draft()
+        });
         sorted_posts.sort_by(|a, b| {
             b.0.borrow()
                 .metadata

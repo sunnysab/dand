@@ -116,18 +116,24 @@ impl Blog {
         std::fs::write(&index_file, &index_html)?;
 
         for post in self.env.get_posts() {
-            let renderer = PostRenderer::new(&self.site, &post);
-            let html = renderer.html();
-            let mut html_file = self.output_dir.clone();
-            html_file.push(format!("{:?}.html", post.0.borrow().reference.full_path));
-            std::fs::write(&html_file, html)?;
+            let renderer = PostRenderer::new(&self.site, post);
+            let html = renderer.html()?;
+            let relative_name = { post.0.borrow().reference.relative_name.clone() };
+
+            let mut post_dir = self.output_dir.clone();
+            post_dir.push(&relative_name);
+            std::fs::create_dir_all(&post_dir).with_context(|| {
+                format!("failed to create post directory: {}", post_dir.display())
+            })?;
+
+            let html_file = post_dir.join("index.html");
+            std::fs::write(&html_file, html)
+                .with_context(|| format!("failed to write post html: {}", html_file.display()))?;
         }
         Ok(())
     }
 
     fn copy_assets(&self) -> Result<()> {
-        // TODO: Copy assets when it necessary
-
         fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
             use std::fs;
 
@@ -148,10 +154,9 @@ impl Blog {
             Ok(())
         }
 
-        let src_dir = resolve_asset_dir().context("failed to resolve asset directory")?;
+        let src_dir = resolve_asset_dir(&self.path).context("failed to resolve asset directory")?;
         let dst_dir = self.output_dir.join("asset");
-        copy_dir(&src_dir, &dst_dir)?;
-        Ok(())
+        copy_dir(&src_dir, &dst_dir)
     }
 
     fn render(&self) -> Result<()> {
@@ -206,18 +211,21 @@ enum Commands {
     },
 }
 
-fn resolve_asset_dir() -> Result<PathBuf> {
-    let cwd_assets = PathBuf::from("template").join("asset");
-    if cwd_assets.is_dir() {
-        return Ok(cwd_assets);
+fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
+    let mut candidates = vec![source_dir.join("template").join("asset")];
+
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join("template").join("asset"));
     }
 
-    let exe_path = std::env::current_exe().context("failed to resolve current executable")?;
-    if let Some(exe_dir) = exe_path.parent() {
-        let exe_assets = exe_dir.join("template").join("asset");
-        if exe_assets.is_dir() {
-            return Ok(exe_assets);
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            candidates.push(exe_dir.join("template").join("asset"));
         }
+    }
+
+    if let Some(found) = candidates.into_iter().find(|path| path.is_dir()) {
+        return Ok(found);
     }
 
     bail!("could not find template/asset directory")
