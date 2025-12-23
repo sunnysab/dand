@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
+use clap::{Parser, Subcommand};
 
 use discover::PostWalker;
 
@@ -33,8 +33,8 @@ impl BlogBuilder {
         Default::default()
     }
 
-    fn src_dir(self, path: &str) -> Result<Self> {
-        let path = PathBuf::from_str(path)?;
+    fn src_dir(self, path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref().to_path_buf();
         if !path.is_dir() {
             bail!("source directory must be a directory");
         } else if !path.exists() {
@@ -45,8 +45,8 @@ impl BlogBuilder {
         Ok(Self { path, ..self })
     }
 
-    fn output_dir(self, path: &str) -> Result<Self> {
-        let path = PathBuf::from_str(path)?;
+    fn output_dir(self, path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref().to_path_buf();
         // Checks against this path will be deferred until build()
         // if !path.is_dir() {
         //     bail!("output directory must be a directory");
@@ -56,7 +56,7 @@ impl BlogBuilder {
         Ok(Self { output_dir, ..self })
     }
 
-    fn conf(self, site_conf: &str) -> Result<Self> {
+    fn conf(self, site_conf: impl AsRef<Path>) -> Result<Self> {
         let conf = SiteConf::load(site_conf)?;
         let site = Option::from(conf);
         Ok(Self { site, ..self })
@@ -148,10 +148,8 @@ impl Blog {
             Ok(())
         }
 
-        // let src_dir = self.path.join("asset");
-        let src_dir = PathBuf::from("/home/sunnysab/Code/dand/template/asset".to_string());
+        let src_dir = resolve_asset_dir().context("failed to resolve asset directory")?;
         let dst_dir = self.output_dir.join("asset");
-        println!("src_dir: {src_dir:?}\ndst_dir: {dst_dir:?}");
         copy_dir(&src_dir, &dst_dir)?;
         Ok(())
     }
@@ -164,12 +162,63 @@ impl Blog {
 }
 
 fn main() -> anyhow::Result<()> {
-    let blog = BlogBuilder::new()
-        .src_dir("/home/sunnysab/Blog/source/_posts/")?
-        .output_dir("/home/sunnysab/Blog/output/")?
-        .conf("/home/sunnysab/Blog/source/_posts/dand.toml")?
-        .build()?;
-
-    let html = blog.render()?;
+    let cli = Cli::parse();
+    match cli.command {
+        Commands::Build {
+            source_dir,
+            output_dir,
+            config,
+        } => {
+            let conf_path = match config {
+                Some(path) => path,
+                None => source_dir.join("dand.toml"),
+            };
+            let blog = BlogBuilder::new()
+                .src_dir(&source_dir)?
+                .output_dir(&output_dir)?
+                .conf(&conf_path)?
+                .build()?;
+            blog.render()?;
+        }
+    }
     Ok(())
+}
+
+#[derive(Parser)]
+#[command(name = "dand", version, about = "A minimal static site generator")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Build the site from a source directory.
+    Build {
+        /// Source directory containing posts and dand.toml
+        source_dir: PathBuf,
+        /// Output directory for generated HTML
+        #[arg(short = 'o', long = "output")]
+        output_dir: PathBuf,
+        /// Optional path to dand.toml
+        #[arg(short = 'c', long = "config")]
+        config: Option<PathBuf>,
+    },
+}
+
+fn resolve_asset_dir() -> Result<PathBuf> {
+    let cwd_assets = PathBuf::from("template").join("asset");
+    if cwd_assets.is_dir() {
+        return Ok(cwd_assets);
+    }
+
+    let exe_path = std::env::current_exe().context("failed to resolve current executable")?;
+    if let Some(exe_dir) = exe_path.parent() {
+        let exe_assets = exe_dir.join("template").join("asset");
+        if exe_assets.is_dir() {
+            return Ok(exe_assets);
+        }
+    }
+
+    bail!("could not find template/asset directory")
 }
