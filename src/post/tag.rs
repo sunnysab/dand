@@ -31,6 +31,14 @@ impl SharedTag {
 
         post.add_tag(self)
     }
+
+    pub fn name(&self) -> String {
+        self.0.borrow().name.clone()
+    }
+
+    pub fn related_posts(&self) -> Vec<SharedPost> {
+        self.0.borrow().related_posts.clone()
+    }
 }
 
 impl Display for SharedTag {
@@ -94,5 +102,9 @@ impl TagSet {
 
             shared_new_tag
         }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &SharedTag)> {
+        self.tags.iter()
     }
 }

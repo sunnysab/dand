@@ -39,6 +39,10 @@ impl Environment {
         &mut self.tags
     }
 
+    pub fn get_tags(&self) -> &TagSet {
+        &self.tags
+    }
+
     pub fn get_posts(&self) -> &Vec<SharedPost> {
         &self.posts
     }

@@ -7,7 +7,7 @@ use discover::PostWalker;
 
 use crate::discover::WalkDirectory;
 use crate::env::Environment;
-use crate::index::IndexRenderer;
+use crate::index::{IndexRenderer, TagRenderer};
 use crate::post::PostRenderer;
 use crate::render::Render;
 use crate::site::SiteConf;
@@ -131,6 +131,20 @@ impl Blog {
             std::fs::write(&html_file, html)
                 .with_context(|| format!("failed to write post html: {}", html_file.display()))?;
             copy_post_resources(&full_path, &post_dir)?;
+        }
+
+        for (_, tag) in self.env.get_tags().iter() {
+            let renderer = TagRenderer::new(&self.site, tag);
+            let html = renderer.html()?;
+            let tag_name = tag.name();
+            let tag_dir = self.output_dir.join("tags").join(&tag_name);
+            std::fs::create_dir_all(&tag_dir).with_context(|| {
+                format!("failed to create tag directory: {}", tag_dir.display())
+            })?;
+
+            let html_file = tag_dir.join("index.html");
+            std::fs::write(&html_file, html)
+                .with_context(|| format!("failed to write tag html: {}", html_file.display()))?;
         }
         Ok(())
     }
