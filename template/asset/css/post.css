@@ -1,10 +1,22 @@
 
+article a {
+    transition: color 160ms ease, text-decoration-color 160ms ease, background-color 160ms ease;
+}
+
 article a:link {
     text-decoration: underline dashed grey 1px;
 }
 
 article a:hover {
-    text-decoration: underline dashed black 1.2px;
+    color: #111;
+    text-decoration: underline dashed rgba(17, 17, 17, 0.9) 1.2px;
+    background-color: rgba(17, 17, 17, 0.04);
+}
+
+article a:focus-visible {
+    outline: 2px solid rgba(17, 17, 17, 0.28);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 .post-date {
