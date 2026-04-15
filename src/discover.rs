@@ -147,7 +147,11 @@ impl WalkDirectory for PostWalker {
         };
 
         // Improve readability by always using '/'
-        rp.replace('\\', "/")
+        let rp = rp.replace('\\', "/");
+
+        rp.strip_prefix("_posts/")
+            .unwrap_or(&rp)
+            .to_string()
     }
 
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
@@ -186,5 +190,25 @@ impl WalkDirectory for PostWalker {
                 self.open(f)
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PostWalker, WalkDirectory};
+    use std::path::PathBuf;
+
+    #[test]
+    fn convert_path_strips_posts_directory_prefix() {
+        let walker = PostWalker::from(PathBuf::from("/tmp/source"));
+
+        assert_eq!(
+            walker.convert_path(&PathBuf::from("/tmp/source/_posts/example.md")),
+            "example"
+        );
+        assert_eq!(
+            walker.convert_path(&PathBuf::from("/tmp/source/_posts/nested/post.md")),
+            "nested/post"
+        );
     }
 }
