@@ -821,3 +821,47 @@ Example\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_uses_root_path_for_site_header_link() {
+    let source_dir = unique_temp_dir("site-header-link-source");
+    let output_dir = unique_temp_dir("site-header-link-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/blog/\"\ndescription = \"test\"\n\n[footer]\nstart_year = 2020\nbeian = \"沪ICP备20260001号\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/example.md"),
+        "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+categories:\n\
+  - 随笔\n\
+---\n\
+\n\
+Example\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    for path in [
+        output_dir.join("index.html"),
+        output_dir.join("_posts/example/index.html"),
+        output_dir.join("categories/随笔/index.html"),
+    ] {
+        let html = fs::read_to_string(path).unwrap();
+        assert!(html.contains("<a href=\"/\">test</a>"));
+    }
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
