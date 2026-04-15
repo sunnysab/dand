@@ -50,6 +50,9 @@ a:focus-visible {
 .header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 10px 0 14px;
 }
 
 @media (max-width: 599px) {
@@ -60,22 +63,25 @@ a:focus-visible {
 
 .nav {
     display: flex;
+    align-items: center;
 }
 
 .nav-links {
     vertical-align: middle;
     align-items: center;
     display: flex;
+    gap: 6px;
 }
 
 .nav-logo {
     float: left;
     margin-top: -11px;
-    transition: transform 50ms ease-out;
+    transition: transform 120ms ease-out, opacity 120ms ease-out;
 }
 
 .nav-logo:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
+    opacity: 0.92;
 }
 
 .nav-logo img {
@@ -90,6 +96,23 @@ a:focus-visible {
     padding: 0;
     font-size: 14px;
     list-style: none;
+}
+
+.nav-links li {
+    display: flex;
+}
+
+.nav-links a {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-decoration: none;
+}
+
+.nav-links a:hover {
+    background: rgba(34, 34, 34, 0.06);
+    text-decoration: none;
 }
 
 #post-list {
