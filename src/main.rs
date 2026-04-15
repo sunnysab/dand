@@ -314,13 +314,6 @@ fn main() -> anyhow::Result<()> {
             interval_ms,
             config,
         } => run_preview(source_dir, output_dir, port, watch, interval_ms, config)?,
-        Commands::Watch {
-            source_dir,
-            output_dir,
-            port,
-            interval_ms,
-            config,
-        } => run_preview(source_dir, output_dir, port, true, interval_ms, config)?,
     }
     Ok(())
 }
@@ -359,24 +352,6 @@ enum Commands {
         #[arg(long = "watch")]
         watch: bool,
         /// Poll interval in milliseconds when --watch is enabled
-        #[arg(long = "interval", default_value_t = 1000)]
-        interval_ms: u64,
-        /// Optional path to dand.toml
-        #[arg(short = 'c', long = "config")]
-        config: Option<PathBuf>,
-    },
-    /// Build the site, then watch source/template changes and rebuild automatically.
-    #[command(hide = true)]
-    Watch {
-        /// Source directory containing posts and dand.toml
-        source_dir: PathBuf,
-        /// Output directory for generated HTML
-        #[arg(short = 'o', long = "output")]
-        output_dir: PathBuf,
-        /// Local preview port
-        #[arg(short = 'p', long = "port", default_value_t = 8000)]
-        port: u16,
-        /// Poll interval in milliseconds
         #[arg(long = "interval", default_value_t = 1000)]
         interval_ms: u64,
         /// Optional path to dand.toml
@@ -884,22 +859,4 @@ date: 2024-01-01 00:00\n\
         }
     }
 
-    #[test]
-    fn watch_command_remains_compatible_alias() {
-        let cli = Cli::parse_from(["dand", "watch", "content", "-o", "public"]);
-
-        match cli.command {
-            Commands::Watch {
-                source_dir,
-                output_dir,
-                interval_ms,
-                ..
-            } => {
-                assert_eq!(source_dir, PathBuf::from("content"));
-                assert_eq!(output_dir, PathBuf::from("public"));
-                assert_eq!(interval_ms, 1000);
-            }
-            _ => panic!("expected watch command"),
-        }
-    }
 }
