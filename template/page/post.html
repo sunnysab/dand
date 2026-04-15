@@ -44,12 +44,46 @@
     <article class="post-content">
         {{ content }}
     </article>
+    <div class="reading-settings" data-reading-settings>
+        <button class="reading-settings-toggle" type="button" aria-expanded="false" aria-controls="reading-settings-panel">
+            <span class="reading-settings-toggle-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+            <span class="reading-settings-toggle-label">阅读设置</span>
+        </button>
+        <section class="reading-settings-panel" id="reading-settings-panel" hidden>
+            <div class="reading-settings-panel-head">
+                <p class="reading-settings-eyebrow">阅读设置</p>
+                <p class="reading-settings-hint">按你的习惯调整这篇文章的版式。</p>
+            </div>
+            <label class="reading-settings-control" for="reading-font-size">
+                <span>字号</span>
+                <input id="reading-font-size" name="reading-font-size" type="range" min="16" max="24" step="1" value="18" data-reading-font-size>
+            </label>
+            <label class="reading-settings-control" for="reading-page-width">
+                <span>页宽</span>
+                <input id="reading-page-width" name="reading-page-width" type="range" min="38" max="62" step="1" value="46" data-reading-page-width>
+            </label>
+            <label class="reading-settings-check" for="reading-use-sans">
+                <input id="reading-use-sans" name="reading-use-sans" type="checkbox" data-reading-use-sans>
+                <span>使用非衬线正文</span>
+            </label>
+            <label class="reading-settings-check" for="reading-justify">
+                <input id="reading-justify" name="reading-justify" type="checkbox" data-reading-justify>
+                <span>正文两端对齐</span>
+            </label>
+        </section>
+    </div>
 </main>
 {% endblock %}
 
 {% block body_scripts %}
+<script src="/asset/js/reading-settings.js"></script>
 <script>hljs.highlightAll();</script>
 <script>replaceDateString(".post-date");</script>
+<script>initReadingSettings();</script>
 {% if post.metadata.use_latex %}
 <script>
     (function () {
