@@ -73,12 +73,7 @@ impl BlogBuilder {
             .site
             .ok_or_else(|| anyhow!("site() must be called before build()."))?;
 
-        if !output_dir.exists() {
-            std::fs::create_dir_all(&output_dir).with_context(|| {
-                let output_dir = output_dir.display();
-                format!("failed to create output directory: {output_dir}")
-            })?;
-        }
+        prepare_output_dir(&path, &output_dir)?;
         let mut env = Environment::new();
         let walker = PostWalker::from(path.clone());
         for post_ref in walker.walk()?.into_iter() {
@@ -171,6 +166,37 @@ fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
             fs::copy(&path, &dst_path)?;
         }
     }
+    Ok(())
+}
+
+fn prepare_output_dir(source_dir: &Path, output_dir: &Path) -> Result<()> {
+    let source_dir = source_dir.canonicalize().with_context(|| {
+        format!("failed to canonicalize source directory: {}", source_dir.display())
+    })?;
+    let output_dir_existing = output_dir.exists();
+    let output_dir_canonical = if output_dir_existing {
+        Some(output_dir.canonicalize().with_context(|| {
+            format!(
+                "failed to canonicalize output directory: {}",
+                output_dir.display()
+            )
+        })?)
+    } else {
+        None
+    };
+
+    if output_dir_canonical.as_deref() == Some(source_dir.as_path()) {
+        bail!("output directory must be different from source directory");
+    }
+
+    if output_dir_existing {
+        std::fs::remove_dir_all(output_dir).with_context(|| {
+            format!("failed to clean output directory: {}", output_dir.display())
+        })?;
+    }
+    std::fs::create_dir_all(output_dir).with_context(|| {
+        format!("failed to create output directory: {}", output_dir.display())
+    })?;
     Ok(())
 }
 
