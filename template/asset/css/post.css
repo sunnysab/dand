@@ -1,31 +1,41 @@
 
-article a {
+.post-page {
+    margin: 36px 0 48px;
+}
+
+.post-header {
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(34, 34, 34, 0.1);
+}
+
+.post-title {
+    margin: 0 0 10px;
+    font-size: 2.25rem;
+    line-height: 1.2;
+}
+
+.post-content a {
     transition: color 160ms ease, text-decoration-color 160ms ease, background-color 160ms ease;
 }
 
-article a:link {
+.post-content a:link {
     text-decoration: underline dashed grey 1px;
 }
 
-article a:hover {
+.post-content a:hover {
     color: #111;
     text-decoration: underline dashed rgba(17, 17, 17, 0.9) 1.2px;
     background-color: rgba(17, 17, 17, 0.04);
 }
 
-article a:focus-visible {
+.post-content a:focus-visible {
     outline: 2px solid rgba(17, 17, 17, 0.28);
     outline-offset: 2px;
     border-radius: 2px;
 }
 
 .post-date {
-}
-
-body > h1 {
-    margin: 36px 0 10px;
-    font-size: 2.25rem;
-    line-height: 1.2;
 }
 
 .article-metadata {
@@ -35,30 +45,33 @@ body > h1 {
     line-height: 1.6;
 }
 
-article {
-    margin: 28px 0 48px;
+.post-taxonomy {
+    margin-bottom: 0;
+}
+
+.post-content {
     line-height: 1.85;
 }
 
-article h2,
-article h3,
-article h4 {
+.post-content h2,
+.post-content h3,
+.post-content h4 {
     margin: 2.4em 0 0.7em;
     line-height: 1.35;
 }
 
-article ul,
-article ol {
+.post-content ul,
+.post-content ol {
     margin: 1.1em 0;
     padding-left: 1.5em;
 }
 
-article p {
+.post-content p {
     margin: 1em 0;
     text-indent: 0;
 }
 
-article li {
+.post-content li {
     margin: 0.4em 0;
 }
 
