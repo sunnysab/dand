@@ -24,6 +24,10 @@ h6 {
     color: #222;
 }
 
+.font-sans {
+    font-family: sans-serif;
+}
+
 *:link, a {
     color: inherit;
     outline: none;
@@ -70,11 +74,14 @@ a:focus-visible {
 }
 
 .nav-links {
-    vertical-align: middle;
-    align-items: center;
     display: flex;
+    align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    list-style: none;
 }
 
 .nav-logo {
@@ -98,13 +105,6 @@ a:focus-visible {
 .nav-logo h1 {
     margin: 0;
     line-height: 1.1;
-}
-
-.nav-links {
-    margin: 0;
-    padding: 0;
-    font-size: 14px;
-    list-style: none;
 }
 
 .nav-links li {
@@ -156,14 +156,13 @@ a:focus-visible {
     text-underline-offset: 0.15em;
 }
 
-#post-list,
-#archive-list {
-    padding: 0px;
+.listing-list {
+    margin: 0;
+    padding: 0;
     list-style: none;
 }
 
-#post-list li,
-#archive-list li {
+.listing-list li {
     display: flex;
     flex-wrap: nowrap;
     text-overflow: ellipsis;
@@ -180,15 +179,13 @@ a:focus-visible {
         width: 100%;
     }
 
-    #post-list li,
-    #archive-list li {
+    .listing-list li {
         flex-direction: column;
         margin: 6px 0;
     }
 }
 
-#post-list li:hover,
-#archive-list li:hover {
+.listing-list li:hover {
     background: rgba(200, 217, 232, 0.5);
 }
 
