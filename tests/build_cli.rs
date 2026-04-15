@@ -493,3 +493,53 @@ Slugged\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_adds_tags_and_categories_to_header_navigation() {
+    let source_dir = unique_temp_dir("nav-source");
+    let output_dir = unique_temp_dir("nav-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/example.md"),
+        "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Example\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    for path in [
+        output_dir.join("index.html"),
+        output_dir.join("_posts/example/index.html"),
+        output_dir.join("tags/index.html"),
+        output_dir.join("categories/index.html"),
+    ] {
+        let html = fs::read_to_string(path).unwrap();
+        assert!(html.contains("href=\"/tags/\""));
+        assert!(html.contains(">标签<"));
+        assert!(html.contains("href=\"/categories/\""));
+        assert!(html.contains(">分类<"));
+    }
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
