@@ -74,11 +74,12 @@ a:focus-visible {
     align-items: center;
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
 }
 
 .nav-logo {
-    float: left;
-    margin-top: -11px;
+    display: inline-flex;
+    align-items: center;
     transition: transform 120ms ease-out, opacity 120ms ease-out;
 }
 
@@ -92,6 +93,11 @@ a:focus-visible {
     max-height: 40px;
     width: auto;
     border-radius: 50%;
+}
+
+.nav-logo h1 {
+    margin: 0;
+    line-height: 1.1;
 }
 
 .nav-links {
@@ -170,6 +176,10 @@ a:focus-visible {
 }
 
 @media (max-width: 599px) {
+    .nav {
+        width: 100%;
+    }
+
     #post-list li,
     #archive-list li {
         flex-direction: column;
