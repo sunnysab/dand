@@ -2,6 +2,7 @@
 .post-page {
     --reader-max-width: 46rem;
     --reader-font-size: 1.125rem;
+    --reader-line-height: 1.85;
     --reader-font-family: serif;
     width: min(100%, var(--reader-max-width));
     max-width: var(--reader-max-width);
@@ -75,7 +76,7 @@
 .post-content {
     font-family: var(--reader-font-family);
     font-size: var(--reader-font-size);
-    line-height: 1.85;
+    line-height: var(--reader-line-height);
     text-align: justify;
     text-justify: inter-character;
 }

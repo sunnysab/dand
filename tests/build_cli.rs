@@ -900,6 +900,8 @@ Example\n",
     assert!(post_html.contains("reading-settings-toggle"));
     assert!(post_html.contains("reading-settings-panel"));
     assert!(post_html.contains("阅读设置"));
+    assert!(post_html.contains("行高"));
+    assert!(post_html.contains("data-reading-line-height"));
     assert!(post_html.contains("data-reading-justify checked"));
 
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
