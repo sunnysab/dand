@@ -536,7 +536,8 @@ fn read_request_path(stream: &TcpStream) -> Result<String> {
 
 fn resolve_request_path(root_dir: &Path, request_path: &str) -> Option<PathBuf> {
     let path_without_query = request_path.split(['?', '#']).next()?;
-    let relative = path_without_query.trim_start_matches('/');
+    let decoded_path = percent_decode(path_without_query)?;
+    let relative = decoded_path.trim_start_matches('/');
 
     let mut clean = PathBuf::new();
     for component in Path::new(relative).components() {
@@ -560,6 +561,29 @@ fn resolve_request_path(root_dir: &Path, request_path: &str) -> Option<PathBuf> 
         return Some(as_directory);
     }
     None
+}
+
+fn percent_decode(input: &str) -> Option<String> {
+    let bytes = input.as_bytes();
+    let mut index = 0;
+    let mut decoded = Vec::with_capacity(bytes.len());
+
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            let hi = *bytes.get(index + 1)?;
+            let lo = *bytes.get(index + 2)?;
+            let hex = [hi, lo];
+            let hex = std::str::from_utf8(&hex).ok()?;
+            let value = u8::from_str_radix(hex, 16).ok()?;
+            decoded.push(value);
+            index += 3;
+        } else {
+            decoded.push(bytes[index]);
+            index += 1;
+        }
+    }
+
+    String::from_utf8(decoded).ok()
 }
 
 fn build_response(status: &str, content_type: &str, body: &[u8]) -> Vec<u8> {
