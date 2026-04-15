@@ -3,6 +3,7 @@ use crate::post::SharedPost;
 use crate::render::Render;
 use crate::site::SiteConf;
 use pulldown_cmark::{html, CowStr, Event, Options, Parser};
+use serde::Serialize;
 
 pub struct PostRenderer<'a> {
     site: &'a SiteConf,
@@ -28,12 +29,52 @@ impl<'a> Render for PostRenderer<'a> {
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
         parameters.insert("post", &self.post);
+        let (tags, categories) = self.taxonomy_links();
+        parameters.insert("tags", &tags);
+        parameters.insert("categories", &categories);
 
         let content = self.render_markdown();
         parameters.insert("content", &content);
 
         let html = template().render("page/post.html", &parameters)?;
         Ok(html)
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct TaxonomyLink {
+    name: String,
+    href: String,
+}
+
+impl<'a> PostRenderer<'a> {
+    fn taxonomy_links(&self) -> (Vec<TaxonomyLink>, Vec<TaxonomyLink>) {
+        let post = self.post.0.borrow();
+        let tags = post
+            .metadata
+            .tags
+            .iter()
+            .map(|tag| {
+                let name = tag.name();
+                TaxonomyLink {
+                    href: format!("/tags/{name}/"),
+                    name,
+                }
+            })
+            .collect();
+        let categories = post
+            .metadata
+            .categories
+            .iter()
+            .map(|category| {
+                let name = category.name();
+                TaxonomyLink {
+                    href: format!("/categories/{name}/"),
+                    name,
+                }
+            })
+            .collect();
+        (tags, categories)
     }
 }
 

@@ -308,3 +308,46 @@ DB Draft\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_adds_tag_and_category_links_to_post_pages() {
+    let source_dir = unique_temp_dir("post-links-source");
+    let output_dir = unique_temp_dir("post-links-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/linked-post.md"),
+        "---\n\
+title: Linked Post\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - rust\n\
+  - web\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Linked Post\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let post_html = fs::read_to_string(output_dir.join("_posts/linked-post/index.html")).unwrap();
+    assert!(post_html.contains("href=\"/tags/rust/\""));
+    assert!(post_html.contains("href=\"/tags/web/\""));
+    assert!(post_html.contains("href=\"/categories/数据库/\""));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
