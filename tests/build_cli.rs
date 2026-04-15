@@ -230,3 +230,81 @@ Rust Draft\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_generates_category_pages() {
+    let source_dir = unique_temp_dir("category-source");
+    let output_dir = unique_temp_dir("category-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/rust-db-1.md"),
+        "---\n\
+title: Rust DB One\n\
+date: 2024-01-01 00:00\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Rust DB One\n",
+    );
+    write_file(
+        &source_dir.join("_posts/rust-db-2.md"),
+        "---\n\
+title: Rust DB Two\n\
+date: 2024-01-02 00:00\n\
+categories:\n\
+  - 数据库\n\
+  - Rust\n\
+---\n\
+\n\
+Rust DB Two\n",
+    );
+    write_file(
+        &source_dir.join("_posts/network.md"),
+        "---\n\
+title: Network\n\
+date: 2024-01-03 00:00\n\
+categories:\n\
+  - 网络\n\
+---\n\
+\n\
+Network\n",
+    );
+    write_file(
+        &source_dir.join("_drafts/db-draft.md"),
+        "---\n\
+title: DB Draft\n\
+date: 2024-01-04 00:00\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+DB Draft\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let db_category_page = output_dir.join("categories/数据库/index.html");
+    assert!(db_category_page.is_file());
+
+    let db_category_html = fs::read_to_string(db_category_page).unwrap();
+    assert!(db_category_html.contains("Rust DB One"));
+    assert!(db_category_html.contains("Rust DB Two"));
+    assert!(!db_category_html.contains("Network"));
+    assert!(!db_category_html.contains("DB Draft"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}

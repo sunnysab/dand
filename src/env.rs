@@ -2,6 +2,7 @@ use anyhow::Context;
 use serde::Serialize;
 use std::sync::OnceLock;
 
+use crate::post::category::CategorySet;
 use crate::post::tag::TagSet;
 use crate::post::SharedPost;
 
@@ -23,6 +24,7 @@ pub fn template() -> &'static tera::Tera {
 
 #[derive(Debug, Serialize)]
 pub struct Environment {
+    categories: CategorySet,
     tags: TagSet,
     posts: Vec<SharedPost>,
 }
@@ -30,9 +32,18 @@ pub struct Environment {
 impl Environment {
     pub fn new() -> Self {
         Self {
+            categories: CategorySet::new(),
             tags: TagSet::new(),
             posts: vec![],
         }
+    }
+
+    pub fn get_categories_mut(&mut self) -> &mut CategorySet {
+        &mut self.categories
+    }
+
+    pub fn get_categories(&self) -> &CategorySet {
+        &self.categories
     }
 
     pub fn get_tags_mut(&mut self) -> &mut TagSet {

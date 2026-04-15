@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use crate::env::{template, Environment};
+use crate::post::category::SharedCategory;
 use crate::post::tag::SharedTag;
 use crate::post::SharedPost;
 use crate::site::SiteConf;
@@ -54,6 +55,33 @@ impl<'a> Render for TagRenderer<'a> {
         parameters.insert("site", &self.site);
         parameters.insert("posts", &self.sorted_posts());
         parameters.insert("category", &self.tag.name());
+
+        let html = template().render("page/index.html", &parameters)?;
+        Ok(html)
+    }
+}
+
+pub struct CategoryRenderer<'a> {
+    site: &'a SiteConf,
+    category: &'a SharedCategory,
+}
+
+impl<'a> CategoryRenderer<'a> {
+    pub fn new(site: &'a SiteConf, category: &'a SharedCategory) -> Self {
+        Self { site, category }
+    }
+
+    fn sorted_posts(&self) -> Vec<SharedPost> {
+        sorted_public_posts(self.category.related_posts())
+    }
+}
+
+impl<'a> Render for CategoryRenderer<'a> {
+    fn html(&self) -> Result<String> {
+        let mut parameters = tera::Context::new();
+        parameters.insert("site", &self.site);
+        parameters.insert("posts", &self.sorted_posts());
+        parameters.insert("category", &self.category.name());
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)

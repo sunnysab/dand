@@ -7,6 +7,7 @@ use anyhow::Result;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize, Serializer};
 
+use category::SharedCategory;
 use flag::PostFlag;
 
 use crate::env::Environment;
@@ -18,6 +19,7 @@ use super::discover::PostReference;
 mod flag;
 mod parser;
 mod render;
+pub mod category;
 pub mod tag;
 
 pub use render::PostRenderer;
@@ -36,6 +38,8 @@ pub struct RawFrontMatter {
     pub use_latex: Option<bool>,
     #[serde(default)]
     tags: Vec<String>,
+    #[serde(default)]
+    categories: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -46,6 +50,7 @@ pub struct Metadata {
     pub use_latex: bool,
     pub flag: PostFlag,
     pub tags: Vec<SharedTag>,
+    pub categories: Vec<SharedCategory>,
 }
 
 #[derive(Debug, Serialize)]
@@ -71,6 +76,10 @@ impl SharedPost {
 
     pub fn add_tag(&self, tag: &SharedTag) {
         self.0.borrow_mut().metadata.tags.push(tag.clone());
+    }
+
+    pub fn add_category(&self, category: &SharedCategory) {
+        self.0.borrow_mut().metadata.categories.push(category.clone());
     }
 }
 
@@ -128,6 +137,7 @@ impl LoadedPost {
             use_latex: front_matter.use_latex.unwrap_or(false),
             flag,
             tags: vec![],
+            categories: vec![],
         };
         let post = Post {
             reference,
@@ -140,6 +150,10 @@ impl LoadedPost {
         let tags = env.get_tags_mut();
         for tag in &front_matter.tags {
             tags.add(tag, &shared_post);
+        }
+        let categories = env.get_categories_mut();
+        for category in &front_matter.categories {
+            categories.add(category, &shared_post);
         }
         env.add_post(shared_post.clone());
         shared_post
