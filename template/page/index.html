@@ -24,12 +24,20 @@
         </ul>
     </nav>
 </header>
-<main>
-    {% if category %}<h2>{{ category }}</h2>{% endif %}
-    {% if overview_href and overview_title %}
-    <p><a href="{{ overview_href }}">{{ overview_title }}</a></p>
-    {% endif %}
-    <ul id="post-list">
+<main class="listing-page">
+    <section class="page-head">
+        {% if category %}
+        <p class="page-eyebrow">分类</p>
+        <h2 class="page-title">{{ category }}</h2>
+        {% else %}
+        <p class="page-eyebrow">最近文章</p>
+        <h2 class="page-title">{{ site.title }}</h2>
+        {% endif %}
+        {% if overview_href and overview_title %}
+        <p class="page-overview"><a href="{{ overview_href }}">{{ overview_title }}</a></p>
+        {% endif %}
+    </section>
+    <ul id="post-list" class="listing-list">
         {% for post in posts %}
         <li>
             <a href="{{ '/' ~ post.reference.relative_name ~ '/' }}">{{ post.metadata.title }}</a>

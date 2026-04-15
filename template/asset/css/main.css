@@ -115,6 +115,38 @@ a:focus-visible {
     text-decoration: none;
 }
 
+.listing-page {
+    margin: 28px 0 48px;
+}
+
+.page-head {
+    margin-bottom: 22px;
+}
+
+.page-eyebrow {
+    margin: 0 0 6px;
+    color: #777;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+}
+
+.page-title {
+    margin: 0;
+    line-height: 1.2;
+}
+
+.page-overview {
+    margin: 12px 0 0;
+    color: #555;
+    line-height: 1.7;
+}
+
+.page-overview a {
+    text-decoration: underline;
+    text-decoration-color: rgba(34, 34, 34, 0.18);
+    text-underline-offset: 0.15em;
+}
+
 #post-list,
 #archive-list {
     padding: 0px;

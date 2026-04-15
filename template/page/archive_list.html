@@ -19,9 +19,12 @@
         </ul>
     </nav>
 </header>
-<main>
-    <h2>{{ title }}</h2>
-    <ul id="archive-list">
+<main class="listing-page">
+    <section class="page-head">
+        <p class="page-eyebrow">归档</p>
+        <h2 class="page-title">{{ title }}</h2>
+    </section>
+    <ul id="archive-list" class="listing-list">
         {% for item in items %}
         <li>
             <a href="{{ item.href }}">{{ item.name }}</a>
