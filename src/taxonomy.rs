@@ -1,47 +1,3 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
-
-pub type SlugMap = HashMap<String, String>;
-
-pub fn build_slug_map<'a>(names: impl IntoIterator<Item = &'a str>) -> SlugMap {
-    let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for name in names {
-        grouped
-            .entry(slugify(name))
-            .or_default()
-            .push(name.to_string());
-    }
-
-    let mut used = HashSet::new();
-    let mut slugs = HashMap::new();
-    for (base, mut names) in grouped {
-        names.sort_by_key(|name| {
-            (
-                name.as_str() != base.as_str(),
-                name.to_lowercase(),
-                name.clone(),
-            )
-        });
-
-        if names.len() == 1 {
-            let slug = reserve_slug(base, &mut used);
-            slugs.insert(names.remove(0), slug);
-            continue;
-        }
-
-        for (index, name) in names.into_iter().enumerate() {
-            let preferred = if index == 0 {
-                base.clone()
-            } else {
-                format!("{base}-{}", index + 1)
-            };
-            let slug = reserve_slug(preferred, &mut used);
-            slugs.insert(name, slug);
-        }
-    }
-
-    slugs
-}
-
 pub fn slugify(name: &str) -> String {
     let mut slug = String::new();
     let mut prev_separator = false;
@@ -73,23 +29,10 @@ pub fn slugify(name: &str) -> String {
     }
 }
 
-pub fn slug_for<'a>(name: &'a str, slugs: &'a SlugMap) -> &'a str {
-    slugs.get(name).map(String::as_str).unwrap_or(name)
-}
-
-fn reserve_slug(preferred: String, used: &mut HashSet<String>) -> String {
-    if used.insert(preferred.clone()) {
-        return preferred;
-    }
-
-    let mut suffix = 2;
-    loop {
-        let candidate = format!("{preferred}-{suffix}");
-        if used.insert(candidate.clone()) {
-            return candidate;
-        }
-        suffix += 1;
-    }
+pub fn should_replace_display_name(current: &str, candidate: &str) -> bool {
+    let current_score = display_name_score(current);
+    let candidate_score = display_name_score(candidate);
+    candidate_score > current_score
 }
 
 fn push_separator(slug: &mut String, prev_separator: &mut bool) {
@@ -109,9 +52,30 @@ fn push_token(slug: &mut String, prev_separator: &mut bool, token: &str) {
     *prev_separator = false;
 }
 
+fn display_name_score(name: &str) -> i32 {
+    let has_upper = name.chars().any(|ch| ch.is_uppercase());
+    let has_lower = name.chars().any(|ch| ch.is_lowercase());
+    let starts_upper = name.chars().next().map(|ch| ch.is_uppercase()).unwrap_or(false);
+
+    let mut score = 0;
+    if has_upper && has_lower {
+        score += 20;
+    }
+    if starts_upper {
+        score += 10;
+    }
+    if has_upper {
+        score += 5;
+    }
+    if has_lower {
+        score += 1;
+    }
+    score
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{build_slug_map, slugify};
+    use super::{should_replace_display_name, slugify};
 
     #[test]
     fn slugifies_special_characters() {
@@ -120,10 +84,9 @@ mod tests {
     }
 
     #[test]
-    fn assigns_stable_suffixes_for_collisions() {
-        let map = build_slug_map(["Rust", "rust"]);
-
-        assert_eq!(map.get("rust").unwrap(), "rust");
-        assert_eq!(map.get("Rust").unwrap(), "rust-2");
+    fn prefers_better_display_names() {
+        assert!(should_replace_display_name("rust", "Rust"));
+        assert!(should_replace_display_name("postgresql", "PostgreSQL"));
+        assert!(!should_replace_display_name("Rust", "rust"));
     }
 }

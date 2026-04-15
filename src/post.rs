@@ -75,11 +75,29 @@ impl SharedPost {
     }
 
     pub fn add_tag(&self, tag: &SharedTag) {
-        self.0.borrow_mut().metadata.tags.push(tag.clone());
+        let mut post = self.0.borrow_mut();
+        if post
+            .metadata
+            .tags
+            .iter()
+            .any(|existing| existing.slug() == tag.slug())
+        {
+            return;
+        }
+        post.metadata.tags.push(tag.clone());
     }
 
     pub fn add_category(&self, category: &SharedCategory) {
-        self.0.borrow_mut().metadata.categories.push(category.clone());
+        let mut post = self.0.borrow_mut();
+        if post
+            .metadata
+            .categories
+            .iter()
+            .any(|existing| existing.slug() == category.slug())
+        {
+            return;
+        }
+        post.metadata.categories.push(category.clone());
     }
 }
 

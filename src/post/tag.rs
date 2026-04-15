@@ -6,9 +6,11 @@ use std::rc::Rc;
 use serde::{Serialize, Serializer};
 
 use crate::post::SharedPost;
+use crate::taxonomy::{should_replace_display_name, slugify};
 
 #[derive(Debug, Serialize)]
 pub struct Tag {
+    pub slug: String,
     pub name: String,
     pub related_posts: Vec<SharedPost>,
 }
@@ -19,6 +21,7 @@ pub struct SharedTag(Rc<RefCell<Tag>>);
 impl SharedTag {
     pub fn new(name: &str) -> Self {
         let new_tag = Tag {
+            slug: slugify(name),
             name: name.to_string(),
             related_posts: vec![],
         };
@@ -26,10 +29,22 @@ impl SharedTag {
     }
 
     pub fn relate(&self, post: &SharedPost) {
-        let mut tag = RefCell::borrow_mut(&self.0);
-        tag.related_posts.push(post.clone());
+        {
+            let mut tag = RefCell::borrow_mut(&self.0);
+            if !tag
+                .related_posts
+                .iter()
+                .any(|related| Rc::ptr_eq(&related.0, &post.0))
+            {
+                tag.related_posts.push(post.clone());
+            }
+        }
 
         post.add_tag(self)
+    }
+
+    pub fn slug(&self) -> String {
+        self.0.borrow().slug.clone()
     }
 
     pub fn name(&self) -> String {
@@ -38,6 +53,13 @@ impl SharedTag {
 
     pub fn related_posts(&self) -> Vec<SharedPost> {
         self.0.borrow().related_posts.clone()
+    }
+
+    pub fn update_display_name(&self, candidate: &str) {
+        let mut tag = self.0.borrow_mut();
+        if should_replace_display_name(&tag.name, candidate) {
+            tag.name = candidate.to_string();
+        }
     }
 }
 
@@ -92,13 +114,15 @@ impl TagSet {
     }
 
     pub fn add(&mut self, tag: &str, post: &SharedPost) -> SharedTag {
-        if let Some(existed_tag) = self.tags.get(tag) {
+        let slug = slugify(tag);
+        if let Some(existed_tag) = self.tags.get(&slug) {
+            existed_tag.update_display_name(tag);
             existed_tag.relate(post);
             existed_tag.clone()
         } else {
             let shared_new_tag = SharedTag::new(tag);
             shared_new_tag.relate(post);
-            self.tags.insert(tag.to_string(), shared_new_tag.clone());
+            self.tags.insert(slug, shared_new_tag.clone());
 
             shared_new_tag
         }

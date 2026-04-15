@@ -6,7 +6,6 @@ use crate::post::category::SharedCategory;
 use crate::post::tag::SharedTag;
 use crate::post::SharedPost;
 use crate::site::SiteConf;
-use crate::taxonomy::{slug_for, SlugMap};
 
 use super::render::Render;
 
@@ -39,12 +38,11 @@ impl<'a> Render for IndexRenderer<'a> {
 pub struct TagRenderer<'a> {
     site: &'a SiteConf,
     tag: &'a SharedTag,
-    slugs: &'a SlugMap,
 }
 
 impl<'a> TagRenderer<'a> {
-    pub fn new(site: &'a SiteConf, tag: &'a SharedTag, slugs: &'a SlugMap) -> Self {
-        Self { site, tag, slugs }
+    pub fn new(site: &'a SiteConf, tag: &'a SharedTag) -> Self {
+        Self { site, tag }
     }
 
     fn sorted_posts(&self) -> Vec<SharedPost> {
@@ -58,7 +56,7 @@ impl<'a> Render for TagRenderer<'a> {
         parameters.insert("site", &self.site);
         parameters.insert("posts", &self.sorted_posts());
         parameters.insert("category", &self.tag.name());
-        parameters.insert("category_href", &format!("/tags/{}/", slug_for(&self.tag.name(), self.slugs)));
+        parameters.insert("category_href", &format!("/tags/{}/", self.tag.slug()));
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
@@ -68,16 +66,11 @@ impl<'a> Render for TagRenderer<'a> {
 pub struct CategoryRenderer<'a> {
     site: &'a SiteConf,
     category: &'a SharedCategory,
-    slugs: &'a SlugMap,
 }
 
 impl<'a> CategoryRenderer<'a> {
-    pub fn new(site: &'a SiteConf, category: &'a SharedCategory, slugs: &'a SlugMap) -> Self {
-        Self {
-            site,
-            category,
-            slugs,
-        }
+    pub fn new(site: &'a SiteConf, category: &'a SharedCategory) -> Self {
+        Self { site, category }
     }
 
     fn sorted_posts(&self) -> Vec<SharedPost> {
@@ -93,10 +86,7 @@ impl<'a> Render for CategoryRenderer<'a> {
         parameters.insert("category", &self.category.name());
         parameters.insert(
             "category_href",
-            &format!(
-                "/categories/{}/",
-                slug_for(&self.category.name(), self.slugs)
-            ),
+            &format!("/categories/{}/", self.category.slug()),
         );
 
         let html = template().render("page/index.html", &parameters)?;
@@ -114,12 +104,11 @@ struct ArchiveOverviewItem {
 pub struct TagOverviewRenderer<'a> {
     site: &'a SiteConf,
     env: &'a Environment,
-    slugs: &'a SlugMap,
 }
 
 impl<'a> TagOverviewRenderer<'a> {
-    pub fn new(site: &'a SiteConf, env: &'a Environment, slugs: &'a SlugMap) -> Self {
-        Self { site, env, slugs }
+    pub fn new(site: &'a SiteConf, env: &'a Environment) -> Self {
+        Self { site, env }
     }
 }
 
@@ -130,12 +119,7 @@ impl<'a> Render for TagOverviewRenderer<'a> {
                 .get_tags()
                 .iter()
                 .map(|(_, tag)| {
-                    let name = tag.name();
-                    (
-                        name.clone(),
-                        format!("/tags/{}/", slug_for(&name, self.slugs)),
-                        tag.related_posts(),
-                    )
+                    (tag.name(), format!("/tags/{}/", tag.slug()), tag.related_posts())
                 })
                 .collect(),
         );
@@ -146,12 +130,11 @@ impl<'a> Render for TagOverviewRenderer<'a> {
 pub struct CategoryOverviewRenderer<'a> {
     site: &'a SiteConf,
     env: &'a Environment,
-    slugs: &'a SlugMap,
 }
 
 impl<'a> CategoryOverviewRenderer<'a> {
-    pub fn new(site: &'a SiteConf, env: &'a Environment, slugs: &'a SlugMap) -> Self {
-        Self { site, env, slugs }
+    pub fn new(site: &'a SiteConf, env: &'a Environment) -> Self {
+        Self { site, env }
     }
 }
 
@@ -162,10 +145,9 @@ impl<'a> Render for CategoryOverviewRenderer<'a> {
                 .get_categories()
                 .iter()
                 .map(|(_, category)| {
-                    let name = category.name();
                     (
-                        name.clone(),
-                        format!("/categories/{}/", slug_for(&name, self.slugs)),
+                        category.name(),
+                        format!("/categories/{}/", category.slug()),
                         category.related_posts(),
                     )
                 })

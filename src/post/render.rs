@@ -2,30 +2,17 @@ use crate::env::template;
 use crate::post::SharedPost;
 use crate::render::Render;
 use crate::site::SiteConf;
-use crate::taxonomy::{slug_for, SlugMap};
 use pulldown_cmark::{html, CowStr, Event, Options, Parser};
 use serde::Serialize;
 
 pub struct PostRenderer<'a> {
     site: &'a SiteConf,
     post: &'a SharedPost,
-    tag_slugs: &'a SlugMap,
-    category_slugs: &'a SlugMap,
 }
 
 impl<'a> PostRenderer<'a> {
-    pub fn new(
-        site: &'a SiteConf,
-        post: &'a SharedPost,
-        tag_slugs: &'a SlugMap,
-        category_slugs: &'a SlugMap,
-    ) -> Self {
-        Self {
-            site,
-            post,
-            tag_slugs,
-            category_slugs,
-        }
+    pub fn new(site: &'a SiteConf, post: &'a SharedPost) -> Self {
+        Self { site, post }
     }
 
     fn render_markdown(&self) -> String {
@@ -70,7 +57,7 @@ impl<'a> PostRenderer<'a> {
             .map(|tag| {
                 let name = tag.name();
                 TaxonomyLink {
-                    href: format!("/tags/{}/", slug_for(&name, self.tag_slugs)),
+                    href: format!("/tags/{}/", tag.slug()),
                     name,
                 }
             })
@@ -82,7 +69,7 @@ impl<'a> PostRenderer<'a> {
             .map(|category| {
                 let name = category.name();
                 TaxonomyLink {
-                    href: format!("/categories/{}/", slug_for(&name, self.category_slugs)),
+                    href: format!("/categories/{}/", category.slug()),
                     name,
                 }
             })

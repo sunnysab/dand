@@ -6,9 +6,11 @@ use std::rc::Rc;
 use serde::{Serialize, Serializer};
 
 use crate::post::SharedPost;
+use crate::taxonomy::{should_replace_display_name, slugify};
 
 #[derive(Debug, Serialize)]
 pub struct Category {
+    pub slug: String,
     pub name: String,
     pub related_posts: Vec<SharedPost>,
 }
@@ -19,6 +21,7 @@ pub struct SharedCategory(Rc<RefCell<Category>>);
 impl SharedCategory {
     pub fn new(name: &str) -> Self {
         let new_category = Category {
+            slug: slugify(name),
             name: name.to_string(),
             related_posts: vec![],
         };
@@ -26,10 +29,22 @@ impl SharedCategory {
     }
 
     pub fn relate(&self, post: &SharedPost) {
-        let mut category = RefCell::borrow_mut(&self.0);
-        category.related_posts.push(post.clone());
+        {
+            let mut category = RefCell::borrow_mut(&self.0);
+            if !category
+                .related_posts
+                .iter()
+                .any(|related| Rc::ptr_eq(&related.0, &post.0))
+            {
+                category.related_posts.push(post.clone());
+            }
+        }
 
         post.add_category(self)
+    }
+
+    pub fn slug(&self) -> String {
+        self.0.borrow().slug.clone()
     }
 
     pub fn name(&self) -> String {
@@ -38,6 +53,13 @@ impl SharedCategory {
 
     pub fn related_posts(&self) -> Vec<SharedPost> {
         self.0.borrow().related_posts.clone()
+    }
+
+    pub fn update_display_name(&self, candidate: &str) {
+        let mut category = self.0.borrow_mut();
+        if should_replace_display_name(&category.name, candidate) {
+            category.name = candidate.to_string();
+        }
     }
 }
 
@@ -86,14 +108,16 @@ impl CategorySet {
     }
 
     pub fn add(&mut self, category: &str, post: &SharedPost) -> SharedCategory {
-        if let Some(existed_category) = self.categories.get(category) {
+        let slug = slugify(category);
+        if let Some(existed_category) = self.categories.get(&slug) {
+            existed_category.update_display_name(category);
             existed_category.relate(post);
             existed_category.clone()
         } else {
             let shared_new_category = SharedCategory::new(category);
             shared_new_category.relate(post);
             self.categories
-                .insert(category.to_string(), shared_new_category.clone());
+                .insert(slug, shared_new_category.clone());
 
             shared_new_category
         }

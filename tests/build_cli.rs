@@ -481,13 +481,14 @@ Slugged\n",
 
     assert!(output_dir.join("tags/c-plus-plus/index.html").is_file());
     assert!(output_dir.join("tags/rust/index.html").is_file());
-    assert!(output_dir.join("tags/rust-2/index.html").is_file());
+    assert!(!output_dir.join("tags/rust-2/index.html").exists());
     assert!(output_dir.join("categories/windows-程序/index.html").is_file());
 
     let post_html = fs::read_to_string(output_dir.join("_posts/slugged/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/c-plus-plus/\""));
     assert!(post_html.contains("href=\"/tags/rust/\""));
-    assert!(post_html.contains("href=\"/tags/rust-2/\""));
+    assert!(!post_html.contains("href=\"/tags/rust-2/\""));
+    assert!(post_html.contains(">Rust<"));
     assert!(post_html.contains("href=\"/categories/windows-程序/\""));
 
     fs::remove_dir_all(&source_dir).unwrap();
@@ -539,6 +540,78 @@ Example\n",
         assert!(html.contains("href=\"/categories/\""));
         assert!(html.contains(">分类<"));
     }
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_merges_taxonomy_names_by_slug() {
+    let source_dir = unique_temp_dir("taxonomy-merge-source");
+    let output_dir = unique_temp_dir("taxonomy-merge-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/post-1.md"),
+        "---\n\
+title: Post One\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - postgresql\n\
+---\n\
+\n\
+Post One\n",
+    );
+    write_file(
+        &source_dir.join("_posts/post-2.md"),
+        "---\n\
+title: Post Two\n\
+date: 2024-01-02 00:00\n\
+tags:\n\
+  - Rust\n\
+categories:\n\
+  - PostgreSQL\n\
+---\n\
+\n\
+Post Two\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    assert!(output_dir.join("tags/rust/index.html").is_file());
+    assert!(!output_dir.join("tags/rust-2/index.html").exists());
+    assert!(output_dir.join("categories/postgresql/index.html").is_file());
+    assert!(!output_dir.join("categories/postgresql-2/index.html").exists());
+
+    let tags_overview = fs::read_to_string(output_dir.join("tags/index.html")).unwrap();
+    assert!(tags_overview.contains(">Rust<"));
+    assert!(!tags_overview.contains(">rust<"));
+    assert!(tags_overview.contains("2 篇"));
+
+    let categories_overview =
+        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    assert!(categories_overview.contains(">PostgreSQL<"));
+    assert!(!categories_overview.contains(">postgresql<"));
+    assert!(categories_overview.contains("2 篇"));
+
+    let post_html = fs::read_to_string(output_dir.join("_posts/post-1/index.html")).unwrap();
+    assert!(post_html.contains("href=\"/tags/rust/\""));
+    assert!(post_html.contains(">Rust<"));
+    assert!(post_html.contains("href=\"/categories/postgresql/\""));
+    assert!(post_html.contains(">PostgreSQL<"));
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
