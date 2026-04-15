@@ -443,3 +443,53 @@ Rust Draft\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_normalizes_taxonomy_slugs() {
+    let source_dir = unique_temp_dir("taxonomy-slug-source");
+    let output_dir = unique_temp_dir("taxonomy-slug-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/slugged.md"),
+        "---\n\
+title: Slugged\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - C++\n\
+  - rust\n\
+  - Rust\n\
+categories:\n\
+  - Windows 程序\n\
+---\n\
+\n\
+Slugged\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    assert!(output_dir.join("tags/c-plus-plus/index.html").is_file());
+    assert!(output_dir.join("tags/rust/index.html").is_file());
+    assert!(output_dir.join("tags/rust-2/index.html").is_file());
+    assert!(output_dir.join("categories/windows-程序/index.html").is_file());
+
+    let post_html = fs::read_to_string(output_dir.join("_posts/slugged/index.html")).unwrap();
+    assert!(post_html.contains("href=\"/tags/c-plus-plus/\""));
+    assert!(post_html.contains("href=\"/tags/rust/\""));
+    assert!(post_html.contains("href=\"/tags/rust-2/\""));
+    assert!(post_html.contains("href=\"/categories/windows-程序/\""));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}

@@ -13,6 +13,7 @@ use crate::index::{
 use crate::post::PostRenderer;
 use crate::render::Render;
 use crate::site::SiteConf;
+use crate::taxonomy::build_slug_map;
 
 mod datetime;
 mod discover;
@@ -21,6 +22,7 @@ mod index;
 mod post;
 mod render;
 mod site;
+mod taxonomy;
 
 #[derive(Default)]
 struct BlogBuilder {
@@ -104,6 +106,16 @@ struct Blog {
 
 impl Blog {
     fn render_html(&self) -> Result<()> {
+        let tag_slugs = build_slug_map(self.env.get_tags().iter().map(|(_, tag)| tag.name()).collect::<Vec<_>>().iter().map(String::as_str));
+        let category_slugs = build_slug_map(
+            self.env
+                .get_categories()
+                .iter()
+                .map(|(_, category)| category.name())
+                .collect::<Vec<_>>()
+                .iter()
+                .map(String::as_str),
+        );
         let index_render = IndexRenderer::new(&self.site, &self.env);
         let index_html = index_render.html()?;
 
@@ -113,7 +125,7 @@ impl Blog {
         std::fs::write(&index_file, &index_html)?;
 
         for post in self.env.get_posts() {
-            let renderer = PostRenderer::new(&self.site, post);
+            let renderer = PostRenderer::new(&self.site, post, &tag_slugs, &category_slugs);
             let html = renderer.html()?;
             let (relative_name, full_path) = {
                 let post = post.0.borrow();
@@ -136,9 +148,10 @@ impl Blog {
         }
 
         for (_, tag) in self.env.get_tags().iter() {
-            let renderer = TagRenderer::new(&self.site, tag);
+            let renderer = TagRenderer::new(&self.site, tag, &tag_slugs);
             let html = renderer.html()?;
-            let tag_name = tag.name();
+            let tag_display_name = tag.name();
+            let tag_name = crate::taxonomy::slug_for(&tag_display_name, &tag_slugs);
             let tag_dir = self.output_dir.join("tags").join(&tag_name);
             std::fs::create_dir_all(&tag_dir).with_context(|| {
                 format!("failed to create tag directory: {}", tag_dir.display())
@@ -150,9 +163,11 @@ impl Blog {
         }
 
         for (_, category) in self.env.get_categories().iter() {
-            let renderer = CategoryRenderer::new(&self.site, category);
+            let renderer = CategoryRenderer::new(&self.site, category, &category_slugs);
             let html = renderer.html()?;
-            let category_name = category.name();
+            let category_display_name = category.name();
+            let category_name =
+                crate::taxonomy::slug_for(&category_display_name, &category_slugs);
             let category_dir = self.output_dir.join("categories").join(&category_name);
             std::fs::create_dir_all(&category_dir).with_context(|| {
                 format!(
@@ -167,7 +182,7 @@ impl Blog {
             })?;
         }
 
-        let tags_overview = TagOverviewRenderer::new(&self.site, &self.env).html()?;
+        let tags_overview = TagOverviewRenderer::new(&self.site, &self.env, &tag_slugs).html()?;
         let tags_index = self.output_dir.join("tags").join("index.html");
         if let Some(parent) = tags_index.parent() {
             std::fs::create_dir_all(parent)
@@ -176,7 +191,8 @@ impl Blog {
         std::fs::write(&tags_index, tags_overview)
             .with_context(|| format!("failed to write tags overview: {}", tags_index.display()))?;
 
-        let categories_overview = CategoryOverviewRenderer::new(&self.site, &self.env).html()?;
+        let categories_overview =
+            CategoryOverviewRenderer::new(&self.site, &self.env, &category_slugs).html()?;
         let categories_index = self.output_dir.join("categories").join("index.html");
         if let Some(parent) = categories_index.parent() {
             std::fs::create_dir_all(parent).with_context(|| {
