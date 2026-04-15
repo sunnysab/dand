@@ -854,6 +854,55 @@ Example\n",
 }
 
 #[test]
+fn build_keeps_mobile_reading_controls_effective() {
+    let source_dir = unique_temp_dir("mobile-reading-source");
+    let output_dir = unique_temp_dir("mobile-reading-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(
+        &source_dir.join("_posts/reading.md"),
+        "---\n\
+title: Reading\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Reading\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let post_html = fs::read_to_string(output_dir.join("reading/index.html")).unwrap();
+    let post_css = fs::read_to_string(output_dir.join("asset/css/post.css")).unwrap();
+
+    assert!(post_html.contains("data-reading-line-height"));
+    assert!(post_html.contains("reading-settings-control-page-width"));
+
+    assert!(post_css.contains("@media (max-width: 640px) {\n    .post-page {\n        margin: 28px auto 36px;\n        --reader-max-width: 100%;\n        --reader-font-size: 1rem;\n        --reader-line-height: 1.72;"));
+    assert!(post_css.contains("@media (max-width: 420px) {\n    .post-page {\n        margin: 24px auto 32px;\n        --reader-font-size: 0.97rem;\n        --reader-line-height: 1.68;"));
+    assert!(!post_css.contains(".post-content {\n        --reader-max-width: 100%;"));
+    assert!(!post_css.contains(
+        ".post-content {\n        --reader-font-size: 1rem;\n        --reader-line-height: 1.72;",
+    ));
+    assert!(!post_css.contains(
+        ".post-content {\n        --reader-font-size: 0.97rem;\n        --reader-line-height: 1.68;",
+    ));
+    assert!(post_css.contains(".reading-settings-control-page-width {\n        display: none;"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
 fn build_renders_footer_from_config() {
     let source_dir = unique_temp_dir("footer-source");
     let output_dir = unique_temp_dir("footer-output");
