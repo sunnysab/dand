@@ -785,6 +785,21 @@ date: 2024-01-01 00:00\n\
     }
 
     #[test]
+    fn resolve_request_path_decodes_percent_encoded_directories() {
+        let output_dir = unique_temp_dir("serve-resolve-encoded-output");
+        write_file(&output_dir.join("categories/随笔/index.html"), "notes");
+
+        let encoded_path = resolve_request_path(&output_dir, "/categories/%E9%9A%8F%E7%AC%94/");
+
+        assert_eq!(
+            encoded_path,
+            Some(output_dir.join("categories/随笔/index.html"))
+        );
+
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
     fn serve_connection_sends_no_cache_headers() {
         let output_dir = unique_temp_dir("serve-header-output");
         write_file(&output_dir.join("index.html"), "home");
