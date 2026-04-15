@@ -57,6 +57,8 @@ impl<'a> Render for TagRenderer<'a> {
         parameters.insert("posts", &self.sorted_posts());
         parameters.insert("category", &self.tag.name());
         parameters.insert("category_href", &format!("/tags/{}/", self.tag.slug()));
+        parameters.insert("overview_href", "/tags/");
+        parameters.insert("overview_title", "返回标签总览");
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
@@ -88,6 +90,8 @@ impl<'a> Render for CategoryRenderer<'a> {
             "category_href",
             &format!("/categories/{}/", self.category.slug()),
         );
+        parameters.insert("overview_href", "/categories/");
+        parameters.insert("overview_title", "返回分类总览");
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)

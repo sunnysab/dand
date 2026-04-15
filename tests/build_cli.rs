@@ -694,3 +694,49 @@ Post Three\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_adds_overview_links_to_taxonomy_detail_pages() {
+    let source_dir = unique_temp_dir("taxonomy-detail-nav-source");
+    let output_dir = unique_temp_dir("taxonomy-detail-nav-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/example.md"),
+        "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Example\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let tag_html = fs::read_to_string(output_dir.join("tags/rust/index.html")).unwrap();
+    assert!(tag_html.contains("href=\"/tags/\""));
+    assert!(tag_html.contains(">返回标签总览<"));
+
+    let category_html =
+        fs::read_to_string(output_dir.join("categories/数据库/index.html")).unwrap();
+    assert!(category_html.contains("href=\"/categories/\""));
+    assert!(category_html.contains(">返回分类总览<"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}

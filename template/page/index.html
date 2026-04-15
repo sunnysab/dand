@@ -25,6 +25,9 @@
 </header>
 <main>
     {% if category %}<h2>{{ category }}</h2>{% endif %}
+    {% if overview_href and overview_title %}
+    <p><a href="{{ overview_href }}">{{ overview_title }}</a></p>
+    {% endif %}
     <ul id="post-list">
         {% for post in posts %}
         <li>
