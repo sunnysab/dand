@@ -27,22 +27,6 @@ impl PostFlag {
         self.0 & (PostFlagEnum::Draft as u32) != 0
     }
 
-    pub fn is_latex_enabled(&self) -> bool {
-        self.0 & (PostFlagEnum::LatexEnabled as u32) != 0
-    }
-
-    pub fn set_hidden(&mut self) {
-        self.0 |= PostFlagEnum::Hidden as u32;
-    }
-
-    pub fn set_draft(&mut self) {
-        self.0 |= PostFlagEnum::Draft as u32;
-    }
-
-    pub fn set_latex_enabled(&mut self) {
-        self.0 |= PostFlagEnum::LatexEnabled as u32;
-    }
-
     pub fn with_hidden_flag(mut self, set: bool) -> Self {
         if set {
             self.0 |= PostFlagEnum::Hidden as u32;

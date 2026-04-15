@@ -35,10 +35,6 @@ impl Environment {
         }
     }
 
-    pub fn get_tags(&self) -> &TagSet {
-        &self.tags
-    }
-
     pub fn get_tags_mut(&mut self) -> &mut TagSet {
         &mut self.tags
     }
@@ -50,6 +46,4 @@ impl Environment {
     pub fn add_post(&mut self, post: SharedPost) {
         self.posts.push(post);
     }
-
-    pub fn register() {}
 }

@@ -61,15 +61,6 @@ pub struct Post {
     pub body: &'static str,
 }
 
-impl Post {
-    pub fn expected_url(&self) -> String {
-        let site = "https://example.com/";
-        let relative_name = &self.reference.relative_name;
-
-        format!("{site}{relative_name}")
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SharedPost(pub Rc<RefCell<Post>>);
 

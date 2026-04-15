@@ -93,14 +93,7 @@ impl From<PathBuf> for PostWalker {
     }
 }
 
-pub trait ReadSingleFile {
-    /// Read the metadata of a markdown file, returns a `PostReference` structure.
-    fn open(full_path: PathBuf) -> anyhow::Result<PostReference>;
-}
-
 pub trait WalkDirectory {
-    /// Create a new `PostWalker` instance for a certain directory.
-    fn new(root: &'static str) -> Self;
     /// Parse file path, detect section name from path.
     fn convert_path(&self, relative_path: &Path) -> String;
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
@@ -109,53 +102,7 @@ pub trait WalkDirectory {
     fn walk(&self) -> anyhow::Result<Vec<PostReference>>;
 }
 
-impl ReadSingleFile for PostWalker {
-    /// Read the metadata of a markdown file, returns a `PostReference` structure.
-    ///
-    /// Example:
-    /// ```rust
-    /// let path = PathBuf::from(String::from("..."));
-    /// let file = <PostWalker<'_> as ReadSingleFile>::open(path).unwrap();
-    /// println!("{:#?}", file);
-    /// ```
-    fn open(full_path: PathBuf) -> anyhow::Result<PostReference> {
-        let metadata = full_path.metadata().unwrap();
-        let created = DateTime::<Local>::from(metadata.created()?);
-        let modified = DateTime::<Local>::from(metadata.modified()?);
-
-        let relative_name = if let Some(file) = full_path.file_name() {
-            file.to_string_lossy().trim_end_matches(".md").to_string()
-        } else {
-            String::from("Invalid filename ends with \"..\"")
-        };
-        let result = PostReference {
-            relative_name,
-            full_path,
-            created,
-            modified,
-        };
-        Ok(result)
-    }
-}
-
 impl WalkDirectory for PostWalker {
-    /// Create a new `PostWalker` instance for a certain directory.
-    ///
-    /// Example:
-    /// ```rust
-    /// let files = PostWalker::new("...")
-    ///     .walk()
-    ///     .unwrap();
-    ///
-    /// for file in files {
-    ///     println!("{:#?}", file);
-    /// }
-    /// ```
-    fn new(root: &'static str) -> Self {
-        let root = PathBuf::from(root);
-        Self { root }
-    }
-
     /// Parse file path, detect section name from path.
     ///
     /// in **column**:
