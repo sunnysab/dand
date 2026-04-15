@@ -134,29 +134,10 @@ impl Blog {
     }
 
     fn copy_assets(&self) -> Result<()> {
-        fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
-            use std::fs;
-
-            if !dst.exists() {
-                fs::create_dir_all(dst)?;
-            }
-            for entry in fs::read_dir(src)? {
-                let entry = entry?;
-                let path = entry.path();
-                let dst_path = dst.join(path.file_name().unwrap());
-
-                if entry.file_type()?.is_dir() {
-                    copy_dir(&path, &dst_path)?;
-                } else {
-                    fs::copy(&path, &dst_path)?;
-                }
-            }
-            Ok(())
-        }
-
         let src_dir = resolve_asset_dir(&self.path).context("failed to resolve asset directory")?;
         let dst_dir = self.output_dir.join("asset");
-        copy_dir(&src_dir, &dst_dir)
+        copy_dir(&src_dir, &dst_dir)?;
+        copy_root_static_files(&self.path, &self.output_dir)
     }
 
     fn render(&self) -> Result<()> {
@@ -164,6 +145,43 @@ impl Blog {
         self.render_html()?;
         Ok(())
     }
+}
+
+fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
+    use std::fs;
+
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let path = entry.path();
+        let dst_path = dst.join(path.file_name().unwrap());
+
+        if entry.file_type()?.is_dir() {
+            copy_dir(&path, &dst_path)?;
+        } else {
+            fs::copy(&path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+fn copy_root_static_files(source_dir: &Path, output_dir: &Path) -> Result<()> {
+    for entry in std::fs::read_dir(source_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+
+        if path.extension() == Some("md".as_ref()) || path.file_name() == Some("dand.toml".as_ref()) {
+            continue;
+        }
+
+        std::fs::copy(&path, output_dir.join(entry.file_name()))?;
+    }
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -229,4 +247,58 @@ fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
     }
 
     bail!("could not find template/asset directory")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+    fn unique_temp_dir(prefix: &str) -> PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!("dand-{prefix}-{timestamp}-{id}"))
+    }
+
+    fn write_file(path: &Path, content: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, content).unwrap();
+    }
+
+    #[test]
+    fn copy_assets_also_copies_root_static_files() {
+        let source_dir = unique_temp_dir("root-static-source");
+        let output_dir = unique_temp_dir("root-static-output");
+
+        write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+        write_file(&source_dir.join("robots.txt"), "User-agent: *\n");
+
+        let blog = Blog {
+            site: SiteConf {
+                title: String::from("test"),
+                home: String::from("https://example.com/"),
+                description: String::from("test"),
+            },
+            path: source_dir.clone(),
+            output_dir: output_dir.clone(),
+            env: Environment::new(),
+        };
+
+        blog.copy_assets().unwrap();
+
+        assert!(output_dir.join("asset/css/main.css").is_file());
+        assert!(output_dir.join("robots.txt").is_file());
+
+        fs::remove_dir_all(&source_dir).unwrap();
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
 }
