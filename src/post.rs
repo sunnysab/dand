@@ -16,10 +16,10 @@ use crate::post::tag::SharedTag;
 use super::datetime::datetime_serde;
 use super::discover::PostReference;
 
+pub mod category;
 mod flag;
 mod parser;
 mod render;
-pub mod category;
 pub mod tag;
 
 pub use render::PostRenderer;
@@ -35,6 +35,7 @@ pub struct RawFrontMatter {
     pub modify_date: Option<DateTime<Local>>,
     pub is_hidden: Option<bool>,
     pub is_draft: Option<bool>,
+    #[serde(alias = "mathjax")]
     pub use_latex: Option<bool>,
     #[serde(default)]
     tags: Vec<String>,
@@ -143,7 +144,9 @@ impl LoadedPost {
             body,
         } = self;
 
-        let is_draft = front_matter.is_draft.unwrap_or(reference.is_under_drafts_dir());
+        let is_draft = front_matter
+            .is_draft
+            .unwrap_or(reference.is_under_drafts_dir());
         let flag = PostFlag::new()
             .with_draft_flag(is_draft)
             .with_hidden_flag(front_matter.is_hidden.unwrap_or(false))

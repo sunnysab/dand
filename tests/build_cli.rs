@@ -357,6 +357,50 @@ Linked Post\n",
 }
 
 #[test]
+fn build_supports_legacy_mathjax_front_matter() {
+    let source_dir = unique_temp_dir("legacy-mathjax-source");
+    let output_dir = unique_temp_dir("legacy-mathjax-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/math.md"),
+        "---\n\
+title: Math\n\
+date: 2024-01-01 00:00\n\
+mathjax: true\n\
+---\n\
+\n\
+函数 $y = f(x)$。\n\
+\n\
+$$\n\
+x^2 + y^2 = z^2\n\
+$$\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let post_html = fs::read_to_string(output_dir.join("math/index.html")).unwrap();
+    assert!(post_html.contains("cdnjs.cloudflare.com/ajax/libs/KaTeX"));
+    assert!(post_html.contains("class=\"arithmatex\""));
+    assert!(post_html.contains("data-display-mode=\"false\""));
+    assert!(post_html.contains("data-display-mode=\"true\""));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
 fn build_generates_tag_and_category_overview_pages() {
     let source_dir = unique_temp_dir("archive-overview-source");
     let output_dir = unique_temp_dir("archive-overview-output");
@@ -437,8 +481,7 @@ Rust Draft\n",
     assert!(tags_overview.contains("rust"));
     assert!(tags_overview.contains("1 篇"));
 
-    let categories_overview =
-        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    let categories_overview = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
     assert!(categories_overview.contains("href=\"/categories/数据库/\""));
     assert!(categories_overview.contains("href=\"/categories/网络/\""));
     assert!(categories_overview.contains("数据库"));
@@ -486,7 +529,9 @@ Slugged\n",
     assert!(output_dir.join("tags/c-plus-plus/index.html").is_file());
     assert!(output_dir.join("tags/rust/index.html").is_file());
     assert!(!output_dir.join("tags/rust-2/index.html").exists());
-    assert!(output_dir.join("categories/windows-程序/index.html").is_file());
+    assert!(output_dir
+        .join("categories/windows-程序/index.html")
+        .is_file());
 
     let post_html = fs::read_to_string(output_dir.join("slugged/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/c-plus-plus/\""));
@@ -597,16 +642,19 @@ Post Two\n",
 
     assert!(output_dir.join("tags/rust/index.html").is_file());
     assert!(!output_dir.join("tags/rust-2/index.html").exists());
-    assert!(output_dir.join("categories/postgresql/index.html").is_file());
-    assert!(!output_dir.join("categories/postgresql-2/index.html").exists());
+    assert!(output_dir
+        .join("categories/postgresql/index.html")
+        .is_file());
+    assert!(!output_dir
+        .join("categories/postgresql-2/index.html")
+        .exists());
 
     let tags_overview = fs::read_to_string(output_dir.join("tags/index.html")).unwrap();
     assert!(tags_overview.contains(">Rust<"));
     assert!(!tags_overview.contains(">rust<"));
     assert!(tags_overview.contains("2 篇"));
 
-    let categories_overview =
-        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    let categories_overview = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
     assert!(categories_overview.contains(">PostgreSQL<"));
     assert!(!categories_overview.contains(">postgresql<"));
     assert!(categories_overview.contains("2 篇"));
@@ -685,8 +733,7 @@ Post Three\n",
     let db_pos = tags_overview.find("href=\"/tags/db/\"").unwrap();
     assert!(rust_pos < db_pos);
 
-    let categories_overview =
-        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    let categories_overview = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
     let database_pos = categories_overview
         .find("href=\"/categories/数据库/\"")
         .unwrap();
@@ -814,8 +861,7 @@ Example\n",
         .unwrap();
     assert!(status.success());
 
-    let category_html =
-        fs::read_to_string(output_dir.join("categories/随笔/index.html")).unwrap();
+    let category_html = fs::read_to_string(output_dir.join("categories/随笔/index.html")).unwrap();
     assert!(category_html.contains("<html lang=\"zh-CN\">"));
 
     fs::remove_dir_all(&source_dir).unwrap();
@@ -949,14 +995,12 @@ Example\n",
     assert!(index_html.contains("<title>@sunnysab</title>"));
     assert!(!index_html.contains("<div class=\"nav-logo\"><h1"));
 
-    let category_html =
-        fs::read_to_string(output_dir.join("categories/随笔/index.html")).unwrap();
+    let category_html = fs::read_to_string(output_dir.join("categories/随笔/index.html")).unwrap();
     assert!(category_html.contains("<h1 class=\"page-title\">随笔</h1>"));
     assert!(category_html.contains("<title>随笔 - @sunnysab</title>"));
     assert!(!category_html.contains("<div class=\"nav-logo\"><h1"));
 
-    let categories_overview =
-        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    let categories_overview = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
     assert!(categories_overview.contains("<h1 class=\"page-title\">分类</h1>"));
     assert!(!categories_overview.contains("<div class=\"nav-logo\"><h1"));
 

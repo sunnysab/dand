@@ -104,7 +104,10 @@
                 tex = maths[i].innerText || maths[i].textContent;
                 displayMode = maths[i].dataset.displayMode === "true";
                 // Add support for latex blocks.
-                katex.render(tex, maths[i], {'displayMode': displayMode});
+                katex.render(tex, maths[i], {
+                    'displayMode': displayMode,
+                    'throwOnError': false
+                });
             }
         });
 
