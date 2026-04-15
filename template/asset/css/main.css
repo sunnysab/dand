@@ -115,36 +115,48 @@ a:focus-visible {
     text-decoration: none;
 }
 
-#post-list {
+#post-list,
+#archive-list {
     padding: 0px;
     list-style: none;
 }
 
-#post-list li {
+#post-list li,
+#archive-list li {
     display: flex;
     flex-wrap: nowrap;
     text-overflow: ellipsis;
 
     justify-content: space-between;
     margin: 4px 0;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(34, 34, 34, 0.08);
     transition: background 400ms ease;
 }
 
 @media (max-width: 599px) {
-    #post-list li {
+    #post-list li,
+    #archive-list li {
         flex-direction: column;
         margin: 6px 0;
     }
 }
 
-#post-list li:hover {
+#post-list li:hover,
+#archive-list li:hover {
     background: rgba(200, 217, 232, 0.5);
 }
 
-#post-list .post-date {
+#post-list .post-date,
+#archive-list .archive-count {
     color: #ccc;
     font-size: 80%;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+#archive-list .archive-count {
+    color: #999;
 }
 
 .copyright {
