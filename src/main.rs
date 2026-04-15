@@ -398,12 +398,19 @@ fn run_preview(
     loop {
         thread::sleep(poll_interval);
         let observed_state = capture_watch_state(&watch_paths)?;
-        if observed_state == current_state {
+        let changed_paths = changed_watch_paths(&current_state, &observed_state);
+        if changed_paths.is_empty() {
             continue;
         }
 
         current_state = observed_state;
-        eprintln!("Change detected, rebuilding...");
+        let changed_list = changed_paths
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        eprintln!("Change detected: {changed_list}");
+        eprintln!("Rebuilding...");
         match build_blog(&source_dir, &output_dir, Some(config_path.clone()))
             .and_then(|blog| blog.render())
         {
@@ -618,6 +625,30 @@ fn capture_watch_state(paths: &[PathBuf]) -> Result<BTreeMap<PathBuf, u128>> {
     Ok(state)
 }
 
+fn changed_watch_paths(
+    before: &BTreeMap<PathBuf, u128>,
+    after: &BTreeMap<PathBuf, u128>,
+) -> Vec<PathBuf> {
+    let mut changed = BTreeSet::new();
+
+    for (path, timestamp) in after {
+        match before.get(path) {
+            Some(previous) if previous == timestamp => {}
+            _ => {
+                changed.insert(path.clone());
+            }
+        }
+    }
+
+    for path in before.keys() {
+        if !after.contains_key(path) {
+            changed.insert(path.clone());
+        }
+    }
+
+    changed.into_iter().collect()
+}
+
 fn capture_watch_entry(path: &Path, state: &mut BTreeMap<PathBuf, u128>) -> Result<()> {
     let metadata = std::fs::metadata(path)
         .with_context(|| format!("failed to stat watched path: {}", path.display()))?;
@@ -825,6 +856,23 @@ date: 2024-01-01 00:00\n\
         let after = capture_watch_state(std::slice::from_ref(&watched_dir)).unwrap();
 
         assert_ne!(before, after);
+
+        fs::remove_dir_all(&watched_dir).unwrap();
+    }
+
+    #[test]
+    fn changed_watch_paths_reports_modified_file() {
+        let watched_dir = unique_temp_dir("watch-diff-dir");
+        let file_path = watched_dir.join("note.txt");
+        write_file(&file_path, "first");
+
+        let before = capture_watch_state(std::slice::from_ref(&watched_dir)).unwrap();
+        std::thread::sleep(Duration::from_millis(5));
+        write_file(&file_path, "second");
+        let after = capture_watch_state(std::slice::from_ref(&watched_dir)).unwrap();
+
+        let changed = changed_watch_paths(&before, &after);
+        assert!(changed.iter().any(|path| path == &file_path));
 
         fs::remove_dir_all(&watched_dir).unwrap();
     }
