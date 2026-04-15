@@ -118,7 +118,13 @@ impl Blog {
         for post in self.env.get_posts() {
             let renderer = PostRenderer::new(&self.site, post);
             let html = renderer.html()?;
-            let relative_name = { post.0.borrow().reference.relative_name.clone() };
+            let (relative_name, full_path) = {
+                let post = post.0.borrow();
+                (
+                    post.reference.relative_name.clone(),
+                    post.reference.full_path.clone(),
+                )
+            };
 
             let mut post_dir = self.output_dir.clone();
             post_dir.push(&relative_name);
@@ -129,6 +135,7 @@ impl Blog {
             let html_file = post_dir.join("index.html");
             std::fs::write(&html_file, html)
                 .with_context(|| format!("failed to write post html: {}", html_file.display()))?;
+            copy_post_resources(&full_path, &post_dir)?;
         }
         Ok(())
     }
@@ -180,6 +187,21 @@ fn copy_root_static_files(source_dir: &Path, output_dir: &Path) -> Result<()> {
         }
 
         std::fs::copy(&path, output_dir.join(entry.file_name()))?;
+    }
+    Ok(())
+}
+
+fn copy_post_resources(post_path: &Path, output_dir: &Path) -> Result<()> {
+    let Some(parent) = post_path.parent() else {
+        return Ok(());
+    };
+    let Some(stem) = post_path.file_stem() else {
+        return Ok(());
+    };
+
+    let resource_dir = parent.join(stem);
+    if resource_dir.is_dir() {
+        copy_dir(&resource_dir, &output_dir.join(stem))?;
     }
     Ok(())
 }
@@ -297,6 +319,48 @@ mod tests {
 
         assert!(output_dir.join("asset/css/main.css").is_file());
         assert!(output_dir.join("robots.txt").is_file());
+
+        fs::remove_dir_all(&source_dir).unwrap();
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn render_copies_post_resource_directories() {
+        let source_dir = unique_temp_dir("post-resource-source");
+        let output_dir = unique_temp_dir("post-resource-output");
+        let post_path = source_dir.join("_posts/example.md");
+
+        write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+        write_file(
+            &post_path,
+            "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+![img](example/image.png)\n",
+        );
+        write_file(&source_dir.join("_posts/example/image.png"), "fake-image");
+
+        let reference = PostWalker::from(source_dir.clone()).open(post_path).unwrap();
+        let mut env = Environment::new();
+        post::load(reference).unwrap().build(&mut env);
+
+        let blog = Blog {
+            site: SiteConf {
+                title: String::from("test"),
+                home: String::from("https://example.com/"),
+                description: String::from("test"),
+            },
+            path: source_dir.clone(),
+            output_dir: output_dir.clone(),
+            env,
+        };
+
+        blog.render().unwrap();
+
+        assert!(output_dir.join("_posts/example/index.html").is_file());
+        assert!(output_dir.join("_posts/example/example/image.png").is_file());
 
         fs::remove_dir_all(&source_dir).unwrap();
         fs::remove_dir_all(&output_dir).unwrap();
