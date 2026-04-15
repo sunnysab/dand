@@ -125,8 +125,9 @@ impl LoadedPost {
             body,
         } = self;
 
+        let is_draft = front_matter.is_draft.unwrap_or(reference.is_under_drafts_dir());
         let flag = PostFlag::new()
-            .with_draft_flag(front_matter.is_draft.unwrap_or(false))
+            .with_draft_flag(is_draft)
             .with_hidden_flag(front_matter.is_hidden.unwrap_or(false))
             .with_latex_enabled_flag(front_matter.use_latex.unwrap_or(false));
         let metadata = Metadata {

@@ -75,6 +75,14 @@ pub struct PostReference {
     pub modified: DateTime<Local>,
 }
 
+impl PostReference {
+    pub fn is_under_drafts_dir(&self) -> bool {
+        self.full_path
+            .components()
+            .any(|component| component.as_os_str() == "_drafts")
+    }
+}
+
 pub struct PostWalker {
     root: PathBuf,
 }

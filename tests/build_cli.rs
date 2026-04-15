@@ -56,3 +56,51 @@ Hello\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_hides_posts_under_drafts_directory_from_index() {
+    let source_dir = unique_temp_dir("draft-source");
+    let output_dir = unique_temp_dir("draft-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/published.md"),
+        "---\n\
+title: Published\n\
+date: 2024-01-02 00:00\n\
+---\n\
+\n\
+Published\n",
+    );
+    write_file(
+        &source_dir.join("_drafts/draft.md"),
+        "---\n\
+title: Draft\n\
+date: 2024-01-03 00:00\n\
+---\n\
+\n\
+Draft\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+
+    assert!(status.success());
+
+    let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
+    assert!(index_html.contains("Published"));
+    assert!(!index_html.contains("Draft"));
+    assert!(output_dir.join("_drafts/draft/index.html").is_file());
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
