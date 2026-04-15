@@ -12,10 +12,11 @@ function initReadingSettings() {
     const fontSizeInput = shell.querySelector("[data-reading-font-size]");
     const pageWidthInput = shell.querySelector("[data-reading-page-width]");
     const lineHeightInput = shell.querySelector("[data-reading-line-height]");
+    const paragraphGapInput = shell.querySelector("[data-reading-paragraph-gap]");
     const useSansInput = shell.querySelector("[data-reading-use-sans]");
     const justifyInput = shell.querySelector("[data-reading-justify]");
 
-    if (!toggle || !panel || !fontSizeInput || !pageWidthInput || !lineHeightInput || !useSansInput || !justifyInput) {
+    if (!toggle || !panel || !fontSizeInput || !pageWidthInput || !lineHeightInput || !paragraphGapInput || !useSansInput || !justifyInput) {
         return;
     }
 
@@ -24,6 +25,7 @@ function initReadingSettings() {
         fontSize: 18,
         pageWidth: 46,
         lineHeight: 185,
+        paragraphGap: 80,
         useSans: false,
         justify: true
     };
@@ -39,6 +41,7 @@ function initReadingSettings() {
         fontSize: Number.isFinite(saved.fontSize) ? saved.fontSize : defaults.fontSize,
         pageWidth: Number.isFinite(saved.pageWidth) ? saved.pageWidth : defaults.pageWidth,
         lineHeight: Number.isFinite(saved.lineHeight) ? saved.lineHeight : defaults.lineHeight,
+        paragraphGap: Number.isFinite(saved.paragraphGap) ? saved.paragraphGap : defaults.paragraphGap,
         useSans: typeof saved.useSans === "boolean" ? saved.useSans : defaults.useSans,
         justify: typeof saved.justify === "boolean" ? saved.justify : defaults.justify
     };
@@ -47,6 +50,7 @@ function initReadingSettings() {
         fontSizeInput.value = String(state.fontSize);
         pageWidthInput.value = String(state.pageWidth);
         lineHeightInput.value = String(state.lineHeight);
+        paragraphGapInput.value = String(state.paragraphGap);
         useSansInput.checked = state.useSans;
         justifyInput.checked = state.justify;
     }
@@ -55,6 +59,7 @@ function initReadingSettings() {
         root.style.setProperty("--reader-font-size", state.fontSize / 16 + "rem");
         root.style.setProperty("--reader-max-width", state.pageWidth + "rem");
         root.style.setProperty("--reader-line-height", state.lineHeight / 100);
+        root.style.setProperty("--reader-paragraph-gap", state.paragraphGap / 100 + "em");
         root.style.setProperty("--reader-font-family", state.useSans ? "sans-serif" : "serif");
         content.dataset.readerJustify = state.justify ? "true" : "false";
     }
@@ -90,6 +95,12 @@ function initReadingSettings() {
 
     lineHeightInput.addEventListener("input", function () {
         state.lineHeight = Number(lineHeightInput.value);
+        applySettings();
+        persistSettings();
+    });
+
+    paragraphGapInput.addEventListener("input", function () {
+        state.paragraphGap = Number(paragraphGapInput.value);
         applySettings();
         persistSettings();
     });

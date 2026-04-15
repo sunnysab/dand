@@ -3,6 +3,7 @@
     --reader-max-width: 46rem;
     --reader-font-size: 1.125rem;
     --reader-line-height: 1.85;
+    --reader-paragraph-gap: 0.8em;
     --reader-font-family: serif;
     width: min(100%, var(--reader-max-width));
     max-width: var(--reader-max-width);
@@ -109,7 +110,7 @@
 }
 
 .post-content p {
-    margin: 1em 0;
+    margin: var(--reader-paragraph-gap) 0;
     text-indent: 0;
 }
 
