@@ -310,60 +310,17 @@ fn main() -> anyhow::Result<()> {
             source_dir,
             output_dir,
             port,
+            watch,
+            interval_ms,
             config,
-        } => {
-            let blog = build_blog(&source_dir, &output_dir, config)?;
-            blog.render()?;
-            let address = format!("127.0.0.1:{port}");
-            eprintln!("Serving {}", address);
-            serve(&output_dir, &address)?;
-        }
+        } => run_preview(source_dir, output_dir, port, watch, interval_ms, config)?,
         Commands::Watch {
             source_dir,
             output_dir,
             port,
             interval_ms,
             config,
-        } => {
-            let config_path = resolve_config_path(&source_dir, config)?;
-            let blog = BlogBuilder::new()
-                .src_dir(&source_dir)?
-                .output_dir(&output_dir)?
-                .conf(&config_path)?
-                .build()?;
-            blog.render()?;
-
-            let address = format!("127.0.0.1:{port}");
-            let listener = bind_server(&address)?;
-            let server_root = output_dir.clone();
-            thread::spawn(move || {
-                if let Err(error) = serve_with_listener(listener, server_root) {
-                    eprintln!("preview server stopped: {error:#}");
-                }
-            });
-
-            let watch_paths = watch_paths(&source_dir, &config_path)?;
-            let mut current_state = capture_watch_state(&watch_paths)?;
-            let poll_interval = Duration::from_millis(interval_ms);
-            eprintln!("Watching {} and serving {}", source_dir.display(), address);
-
-            loop {
-                thread::sleep(poll_interval);
-                let observed_state = capture_watch_state(&watch_paths)?;
-                if observed_state == current_state {
-                    continue;
-                }
-
-                current_state = observed_state;
-                eprintln!("Change detected, rebuilding...");
-                match build_blog(&source_dir, &output_dir, Some(config_path.clone()))
-                    .and_then(|blog| blog.render())
-                {
-                    Ok(()) => eprintln!("Rebuild complete."),
-                    Err(error) => eprintln!("Rebuild failed: {error:#}"),
-                }
-            }
-        }
+        } => run_preview(source_dir, output_dir, port, true, interval_ms, config)?,
     }
     Ok(())
 }
@@ -398,11 +355,18 @@ enum Commands {
         /// Local preview port
         #[arg(short = 'p', long = "port", default_value_t = 8000)]
         port: u16,
+        /// Rebuild automatically when source/template files change
+        #[arg(long = "watch")]
+        watch: bool,
+        /// Poll interval in milliseconds when --watch is enabled
+        #[arg(long = "interval", default_value_t = 1000)]
+        interval_ms: u64,
         /// Optional path to dand.toml
         #[arg(short = 'c', long = "config")]
         config: Option<PathBuf>,
     },
     /// Build the site, then watch source/template changes and rebuild automatically.
+    #[command(hide = true)]
     Watch {
         /// Source directory containing posts and dand.toml
         source_dir: PathBuf,
@@ -419,6 +383,59 @@ enum Commands {
         #[arg(short = 'c', long = "config")]
         config: Option<PathBuf>,
     },
+}
+
+fn run_preview(
+    source_dir: PathBuf,
+    output_dir: PathBuf,
+    port: u16,
+    watch: bool,
+    interval_ms: u64,
+    config: Option<PathBuf>,
+) -> Result<()> {
+    let config_path = resolve_config_path(&source_dir, config)?;
+    let blog = BlogBuilder::new()
+        .src_dir(&source_dir)?
+        .output_dir(&output_dir)?
+        .conf(&config_path)?
+        .build()?;
+    blog.render()?;
+
+    let address = format!("127.0.0.1:{port}");
+    if !watch {
+        eprintln!("Serving {}", address);
+        return serve(&output_dir, &address);
+    }
+
+    let listener = bind_server(&address)?;
+    let server_root = output_dir.clone();
+    thread::spawn(move || {
+        if let Err(error) = serve_with_listener(listener, server_root) {
+            eprintln!("preview server stopped: {error:#}");
+        }
+    });
+
+    let watch_paths = watch_paths(&source_dir, &config_path)?;
+    let mut current_state = capture_watch_state(&watch_paths)?;
+    let poll_interval = Duration::from_millis(interval_ms);
+    eprintln!("Watching {} and serving {}", source_dir.display(), address);
+
+    loop {
+        thread::sleep(poll_interval);
+        let observed_state = capture_watch_state(&watch_paths)?;
+        if observed_state == current_state {
+            continue;
+        }
+
+        current_state = observed_state;
+        eprintln!("Change detected, rebuilding...");
+        match build_blog(&source_dir, &output_dir, Some(config_path.clone()))
+            .and_then(|blog| blog.render())
+        {
+            Ok(()) => eprintln!("Rebuild complete."),
+            Err(error) => eprintln!("Rebuild failed: {error:#}"),
+        }
+    }
 }
 
 fn build_blog(source_dir: &Path, output_dir: &Path, config: Option<PathBuf>) -> Result<Blog> {
@@ -835,5 +852,54 @@ date: 2024-01-01 00:00\n\
         assert_ne!(before, after);
 
         fs::remove_dir_all(&watched_dir).unwrap();
+    }
+
+    #[test]
+    fn serve_command_parses_watch_flag() {
+        let cli = Cli::parse_from([
+            "dand",
+            "serve",
+            "content",
+            "-o",
+            "public",
+            "--watch",
+            "--interval",
+            "250",
+        ]);
+
+        match cli.command {
+            Commands::Serve {
+                source_dir,
+                output_dir,
+                watch,
+                interval_ms,
+                ..
+            } => {
+                assert_eq!(source_dir, PathBuf::from("content"));
+                assert_eq!(output_dir, PathBuf::from("public"));
+                assert!(watch);
+                assert_eq!(interval_ms, 250);
+            }
+            _ => panic!("expected serve command"),
+        }
+    }
+
+    #[test]
+    fn watch_command_remains_compatible_alias() {
+        let cli = Cli::parse_from(["dand", "watch", "content", "-o", "public"]);
+
+        match cli.command {
+            Commands::Watch {
+                source_dir,
+                output_dir,
+                interval_ms,
+                ..
+            } => {
+                assert_eq!(source_dir, PathBuf::from("content"));
+                assert_eq!(output_dir, PathBuf::from("public"));
+                assert_eq!(interval_ms, 1000);
+            }
+            _ => panic!("expected watch command"),
+        }
     }
 }
