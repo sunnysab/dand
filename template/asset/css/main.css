@@ -12,6 +12,7 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -moz-font-feature-settings: "liga" on;
+    line-height: 1.75;
 }
 
 h1,
@@ -58,6 +59,8 @@ a:focus-visible {
 @media (max-width: 599px) {
     .header {
         flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
     }
 }
 
@@ -191,10 +194,16 @@ a:focus-visible {
     color: #999;
 }
 
+footer {
+    margin-top: 40px;
+    border-top: 1px solid rgba(34, 34, 34, 0.08);
+}
+
 .copyright {
-    padding: 27px;
+    padding: 22px 0 28px;
     display: flex;
     justify-content: center;
+    gap: 8px;
 
     color: #888;
     font-size: 80%;
@@ -202,8 +211,17 @@ a:focus-visible {
 }
 
 @media (max-width: 599px) {
+    .listing-page {
+        margin: 22px 0 36px;
+    }
+
+    .page-head {
+        margin-bottom: 18px;
+    }
+
     .copyright {
         flex-direction: column;
+        padding-bottom: 24px;
     }
 
     .copyright-sep {
