@@ -116,8 +116,7 @@ impl CategorySet {
         } else {
             let shared_new_category = SharedCategory::new(category);
             shared_new_category.relate(post);
-            self.categories
-                .insert(slug, shared_new_category.clone());
+            self.categories.insert(slug, shared_new_category.clone());
 
             shared_new_category
         }
