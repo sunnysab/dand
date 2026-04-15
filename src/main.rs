@@ -214,10 +214,7 @@ fn main() -> anyhow::Result<()> {
             output_dir,
             config,
         } => {
-            let conf_path = match config {
-                Some(path) => path,
-                None => source_dir.join("dand.toml"),
-            };
+            let conf_path = resolve_config_path(&source_dir, config)?;
             let blog = BlogBuilder::new()
                 .src_dir(&source_dir)?
                 .output_dir(&output_dir)?
@@ -269,6 +266,23 @@ fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
     }
 
     bail!("could not find template/asset directory")
+}
+
+fn resolve_config_path(source_dir: &Path, config: Option<PathBuf>) -> Result<PathBuf> {
+    if let Some(path) = config {
+        return Ok(path);
+    }
+
+    let candidates = [source_dir.join("dand.toml"), source_dir.join("_posts/dand.toml")];
+    if let Some(found) = candidates.into_iter().find(|path| path.is_file()) {
+        return Ok(found);
+    }
+
+    bail!(
+        "could not find dand.toml in {} or {}/_posts",
+        source_dir.display(),
+        source_dir.display()
+    )
 }
 
 #[cfg(test)]
