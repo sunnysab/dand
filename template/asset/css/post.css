@@ -22,13 +22,44 @@ article a:focus-visible {
 .post-date {
 }
 
-.article-metadata {
-    margin-bottom: 10px;
+body > h1 {
+    margin: 36px 0 10px;
+    font-size: 2.25rem;
+    line-height: 1.2;
 }
 
-p {
-    text-indent: 2em;
-    margin: 0;
+.article-metadata {
+    margin-bottom: 12px;
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+article {
+    margin: 28px 0 48px;
+    line-height: 1.85;
+}
+
+article h2,
+article h3,
+article h4 {
+    margin: 2.4em 0 0.7em;
+    line-height: 1.35;
+}
+
+article ul,
+article ol {
+    margin: 1.1em 0;
+    padding-left: 1.5em;
+}
+
+article p {
+    margin: 1em 0;
+    text-indent: 0;
+}
+
+article li {
+    margin: 0.4em 0;
 }
 
 li p {
