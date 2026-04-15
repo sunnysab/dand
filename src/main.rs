@@ -494,12 +494,32 @@ fn serve_connection(mut stream: TcpStream, root_dir: &Path) -> Result<()> {
                 .with_context(|| format!("failed to read response file: {}", path.display()))?;
             build_response("200 OK", content_type(&path), &body)
         }
-        _ => build_response("404 Not Found", "text/plain; charset=utf-8", b"Not Found"),
+        _ => build_not_found_response(root_dir)?,
     };
 
     stream.write_all(&response)?;
     stream.flush()?;
     Ok(())
+}
+
+fn build_not_found_response(root_dir: &Path) -> Result<Vec<u8>> {
+    let not_found_page = root_dir.join("404").join("index.html");
+    if not_found_page.is_file() {
+        let body = std::fs::read(&not_found_page).with_context(|| {
+            format!("failed to read 404 page: {}", not_found_page.display())
+        })?;
+        return Ok(build_response(
+            "404 Not Found",
+            content_type(&not_found_page),
+            &body,
+        ));
+    }
+
+    Ok(build_response(
+        "404 Not Found",
+        "text/plain; charset=utf-8",
+        b"Not Found",
+    ))
 }
 
 fn read_request_path(stream: &TcpStream) -> Result<String> {
@@ -768,6 +788,35 @@ date: 2024-01-01 00:00\n\
         assert!(response.contains("Cache-Control: no-store, no-cache, must-revalidate, max-age=0"));
         assert!(response.contains("Pragma: no-cache"));
         assert!(response.contains("Expires: 0"));
+
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn serve_connection_uses_site_404_page_when_present() {
+        let output_dir = unique_temp_dir("serve-404-output");
+        write_file(&output_dir.join("404/index.html"), "<h1>Custom Not Found</h1>");
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let root = output_dir.clone();
+
+        let server = thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            serve_connection(stream, &root).unwrap();
+        });
+
+        let mut client = TcpStream::connect(addr).unwrap();
+        client
+            .write_all(b"GET /missing-page HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+            .unwrap();
+
+        let mut response = String::new();
+        client.read_to_string(&mut response).unwrap();
+        server.join().unwrap();
+
+        assert!(response.contains("HTTP/1.1 404 Not Found"));
+        assert!(response.contains("<h1>Custom Not Found</h1>"));
 
         fs::remove_dir_all(&output_dir).unwrap();
     }
