@@ -8,6 +8,8 @@ body {
 }
 
 body {
+    color: #222;
+    background: #fcfcfa;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -58,6 +60,7 @@ a:focus-visible {
     align-items: center;
     gap: 18px;
     padding: 10px 0 14px;
+    border-bottom: 1px solid rgba(34, 34, 34, 0.08);
 }
 
 @media (max-width: 599px) {
@@ -141,6 +144,7 @@ a:focus-visible {
 
 .page-title {
     margin: 0;
+    font-size: 2rem;
     line-height: 1.2;
 }
 
@@ -165,13 +169,14 @@ a:focus-visible {
 .listing-list li {
     display: flex;
     flex-wrap: nowrap;
+    align-items: baseline;
     text-overflow: ellipsis;
 
     justify-content: space-between;
     margin: 4px 0;
-    padding: 4px 0;
+    padding: 7px 0;
     border-bottom: 1px solid rgba(34, 34, 34, 0.08);
-    transition: background 400ms ease;
+    transition: background 220ms ease, border-color 220ms ease;
 }
 
 @media (max-width: 599px) {
@@ -187,11 +192,16 @@ a:focus-visible {
 
 .listing-list li:hover {
     background: rgba(200, 217, 232, 0.5);
+    border-bottom-color: rgba(34, 34, 34, 0.16);
+}
+
+.listing-list li > a {
+    font-weight: 500;
 }
 
 #post-list .post-date,
 #archive-list .archive-count {
-    color: #ccc;
+    color: #9b9b9b;
     font-size: 80%;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
