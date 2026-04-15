@@ -1,29 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1" name="viewport">
+    {% include 'layout/head_default_meta.html' %}
     {% if category %}
     <title>{{ category ~ ' - ' ~ site.title }}</title>
     {% else %}
     <title>{{ site.title }}</title>
     {% endif %}
-    <meta content="dand" name=generator>
-    <meta content="website" property="og:type">
-    <meta content="{{ site.description }}" property="description">
     <link href="/asset/css/main.css" rel="stylesheet">
     <script src="/asset/js/display.js" type="application/javascript"></script>
 </head>
 <body>
-<header class="header">
-    <div class="nav-logo"><h1 class="font-sans"><a href="{{ site.home }}">{{ site.title }}</a></h1></div>
-    <nav class="nav">
-        <ul class="nav-links">
-            <li><a href="/tags/">标签</a></li>
-            <li><a href="/categories/">分类</a></li>
-        </ul>
-    </nav>
-</header>
+{% include 'layout/site_header.html' %}
 <main class="listing-page">
     <section class="page-head">
         {% if category %}
@@ -46,10 +34,7 @@
         {% endfor %}
     </ul>
 </main>
-<!-- copyright -->
-<footer>
-    {% include 'layout/copyright.html' %}
-</footer>
+{% include 'layout/site_footer.html' %}
 </body>
 <script type="application/javascript">
     replaceDateString("#post-list > li > span");
