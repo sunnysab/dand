@@ -357,9 +357,9 @@ Linked Post\n",
 }
 
 #[test]
-fn build_supports_legacy_mathjax_front_matter() {
-    let source_dir = unique_temp_dir("legacy-mathjax-source");
-    let output_dir = unique_temp_dir("legacy-mathjax-output");
+fn build_supports_latex_front_matter() {
+    let source_dir = unique_temp_dir("latex-source");
+    let output_dir = unique_temp_dir("latex-output");
 
     write_file(
         &source_dir.join("dand.toml"),
@@ -370,7 +370,7 @@ fn build_supports_legacy_mathjax_front_matter() {
         "---\n\
 title: Math\n\
 date: 2024-01-01 00:00\n\
-mathjax: true\n\
+latex: true\n\
 ---\n\
 \n\
 函数 $y = f(x)$。\n\
@@ -415,7 +415,7 @@ fn build_uses_local_post_vendor_assets() {
         "---\n\
 title: Hello\n\
 date: 2024-01-01 00:00\n\
-mathjax: true\n\
+latex: true\n\
 ---\n\
 \n\
 ```rust\n\
@@ -441,15 +441,21 @@ fn main() {}\n\
     assert!(post_html.contains("src=\"/asset/js/vendor/katex/katex.min.js\""));
     assert!(!post_html.contains("cdn.jsdelivr.net"));
     assert!(!post_html.contains("cdnjs.cloudflare.com"));
-    assert!(output_dir.join("asset/css/vendor/highlight/default.min.css").is_file());
-    assert!(output_dir.join("asset/js/vendor/highlight/highlight.min.js").is_file());
-    assert!(output_dir.join("asset/css/vendor/katex/katex.min.css").is_file());
-    assert!(output_dir.join("asset/js/vendor/katex/katex.min.js").is_file());
-    assert!(
-        output_dir
-            .join("asset/css/vendor/katex/fonts/KaTeX_Main-Regular.woff2")
-            .is_file()
-    );
+    assert!(output_dir
+        .join("asset/css/vendor/highlight/default.min.css")
+        .is_file());
+    assert!(output_dir
+        .join("asset/js/vendor/highlight/highlight.min.js")
+        .is_file());
+    assert!(output_dir
+        .join("asset/css/vendor/katex/katex.min.css")
+        .is_file());
+    assert!(output_dir
+        .join("asset/js/vendor/katex/katex.min.js")
+        .is_file());
+    assert!(output_dir
+        .join("asset/css/vendor/katex/fonts/KaTeX_Main-Regular.woff2")
+        .is_file());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();

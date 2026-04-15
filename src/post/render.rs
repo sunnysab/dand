@@ -17,11 +17,11 @@ impl<'a> PostRenderer<'a> {
     }
 
     fn render_markdown(&self) -> String {
-        let (markdown_text, use_latex) = {
+        let (markdown_text, latex) = {
             let post = self.post.0.borrow();
-            (post.body, post.metadata.use_latex)
+            (post.body, post.metadata.latex)
         };
-        render_markdown_content(markdown_text, use_latex)
+        render_markdown_content(markdown_text, latex)
     }
 }
 
@@ -80,10 +80,10 @@ impl<'a> PostRenderer<'a> {
     }
 }
 
-fn render_markdown_content(markdown_text: &str, use_latex: bool) -> String {
+fn render_markdown_content(markdown_text: &str, latex: bool) -> String {
     let options = Options::all();
     let parser = Parser::new_ext(markdown_text, options);
-    let events = if use_latex {
+    let events = if latex {
         render_events_with_latex(parser.into_offset_iter(), markdown_text)
     } else {
         parser.collect()

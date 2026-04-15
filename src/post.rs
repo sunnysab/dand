@@ -35,8 +35,7 @@ pub struct RawFrontMatter {
     pub modify_date: Option<DateTime<Local>>,
     pub is_hidden: Option<bool>,
     pub is_draft: Option<bool>,
-    #[serde(alias = "mathjax")]
-    pub use_latex: Option<bool>,
+    pub latex: Option<bool>,
     #[serde(default)]
     tags: Vec<String>,
     #[serde(default)]
@@ -48,7 +47,7 @@ pub struct Metadata {
     pub title: String,
     pub publish_date: DateTime<Local>,
     pub modify_date: DateTime<Local>,
-    pub use_latex: bool,
+    pub latex: bool,
     pub flag: PostFlag,
     pub tags: Vec<SharedTag>,
     pub categories: Vec<SharedCategory>,
@@ -150,12 +149,12 @@ impl LoadedPost {
         let flag = PostFlag::new()
             .with_draft_flag(is_draft)
             .with_hidden_flag(front_matter.is_hidden.unwrap_or(false))
-            .with_latex_enabled_flag(front_matter.use_latex.unwrap_or(false));
+            .with_latex_enabled_flag(front_matter.latex.unwrap_or(false));
         let metadata = Metadata {
             title: front_matter.title,
             publish_date: front_matter.publish_date.unwrap_or(reference.created),
             modify_date: front_matter.modify_date.unwrap_or(reference.modified),
-            use_latex: front_matter.use_latex.unwrap_or(false),
+            latex: front_matter.latex.unwrap_or(false),
             flag,
             tags: vec![],
             categories: vec![],
