@@ -616,3 +616,81 @@ Post Two\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_sorts_taxonomy_overview_by_post_count_desc() {
+    let source_dir = unique_temp_dir("taxonomy-sort-source");
+    let output_dir = unique_temp_dir("taxonomy-sort-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/post-1.md"),
+        "---\n\
+title: Post One\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Post One\n",
+    );
+    write_file(
+        &source_dir.join("_posts/post-2.md"),
+        "---\n\
+title: Post Two\n\
+date: 2024-01-02 00:00\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Post Two\n",
+    );
+    write_file(
+        &source_dir.join("_posts/post-3.md"),
+        "---\n\
+title: Post Three\n\
+date: 2024-01-03 00:00\n\
+tags:\n\
+  - db\n\
+categories:\n\
+  - 网络\n\
+---\n\
+\n\
+Post Three\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let tags_overview = fs::read_to_string(output_dir.join("tags/index.html")).unwrap();
+    let rust_pos = tags_overview.find("href=\"/tags/rust/\"").unwrap();
+    let db_pos = tags_overview.find("href=\"/tags/db/\"").unwrap();
+    assert!(rust_pos < db_pos);
+
+    let categories_overview =
+        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    let database_pos = categories_overview
+        .find("href=\"/categories/数据库/\"")
+        .unwrap();
+    let network_pos = categories_overview
+        .find("href=\"/categories/网络/\"")
+        .unwrap();
+    assert!(database_pos < network_pos);
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}

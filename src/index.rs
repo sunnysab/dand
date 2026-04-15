@@ -192,7 +192,11 @@ fn build_archive_items(entries: Vec<(String, String, Vec<SharedPost>)>) -> Vec<A
         })
         .collect();
 
-    items.sort_by(|a, b| a.name.cmp(&b.name));
+    items.sort_by(|a, b| {
+        b.post_count
+            .cmp(&a.post_count)
+            .then_with(|| a.name.cmp(&b.name))
+    });
     items
 }
 
