@@ -1,4 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpListener, TcpStream};
+use std::path::{Component, Path, PathBuf};
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, Subcommand};
@@ -298,13 +300,20 @@ fn main() -> anyhow::Result<()> {
             output_dir,
             config,
         } => {
-            let conf_path = resolve_config_path(&source_dir, config)?;
-            let blog = BlogBuilder::new()
-                .src_dir(&source_dir)?
-                .output_dir(&output_dir)?
-                .conf(&conf_path)?
-                .build()?;
+            let blog = build_blog(&source_dir, &output_dir, config)?;
             blog.render()?;
+        }
+        Commands::Serve {
+            source_dir,
+            output_dir,
+            port,
+            config,
+        } => {
+            let blog = build_blog(&source_dir, &output_dir, config)?;
+            blog.render()?;
+            let address = format!("127.0.0.1:{port}");
+            eprintln!("Serving {}", address);
+            serve(&output_dir, &address)?;
         }
     }
     Ok(())
@@ -330,6 +339,29 @@ enum Commands {
         #[arg(short = 'c', long = "config")]
         config: Option<PathBuf>,
     },
+    /// Build the site, then start a local HTTP server for preview.
+    Serve {
+        /// Source directory containing posts and dand.toml
+        source_dir: PathBuf,
+        /// Output directory for generated HTML
+        #[arg(short = 'o', long = "output")]
+        output_dir: PathBuf,
+        /// Local preview port
+        #[arg(short = 'p', long = "port", default_value_t = 8000)]
+        port: u16,
+        /// Optional path to dand.toml
+        #[arg(short = 'c', long = "config")]
+        config: Option<PathBuf>,
+    },
+}
+
+fn build_blog(source_dir: &Path, output_dir: &Path, config: Option<PathBuf>) -> Result<Blog> {
+    let conf_path = resolve_config_path(source_dir, config)?;
+    BlogBuilder::new()
+        .src_dir(source_dir)?
+        .output_dir(output_dir)?
+        .conf(&conf_path)?
+        .build()
 }
 
 fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
@@ -369,11 +401,117 @@ fn resolve_config_path(source_dir: &Path, config: Option<PathBuf>) -> Result<Pat
     )
 }
 
+fn serve(root_dir: &Path, address: &str) -> Result<()> {
+    let listener = TcpListener::bind(address)
+        .with_context(|| format!("failed to bind preview server to {}", address))?;
+    for stream in listener.incoming() {
+        let stream = stream?;
+        if let Err(error) = serve_connection(stream, root_dir) {
+            eprintln!("failed to serve request: {error:#}");
+        }
+    }
+    Ok(())
+}
+
+fn serve_connection(mut stream: TcpStream, root_dir: &Path) -> Result<()> {
+    let request_path = read_request_path(&stream)?;
+    let response = match resolve_request_path(root_dir, &request_path) {
+        Some(path) if path.is_file() => {
+            let body = std::fs::read(&path)
+                .with_context(|| format!("failed to read response file: {}", path.display()))?;
+            build_response("200 OK", content_type(&path), &body)
+        }
+        _ => build_response("404 Not Found", "text/plain; charset=utf-8", b"Not Found"),
+    };
+
+    stream.write_all(&response)?;
+    stream.flush()?;
+    Ok(())
+}
+
+fn read_request_path(stream: &TcpStream) -> Result<String> {
+    let mut first_line = String::new();
+    let mut reader = BufReader::new(stream);
+    reader.read_line(&mut first_line)?;
+    let mut parts = first_line.split_whitespace();
+    let _method = parts.next().ok_or_else(|| anyhow!("missing request method"))?;
+    let path = parts
+        .next()
+        .ok_or_else(|| anyhow!("missing request path"))?
+        .to_string();
+    Ok(path)
+}
+
+fn resolve_request_path(root_dir: &Path, request_path: &str) -> Option<PathBuf> {
+    let path_without_query = request_path.split(['?', '#']).next()?;
+    let relative = path_without_query.trim_start_matches('/');
+
+    let mut clean = PathBuf::new();
+    for component in Path::new(relative).components() {
+        match component {
+            Component::Normal(part) => clean.push(part),
+            Component::CurDir => {}
+            Component::RootDir | Component::Prefix(_) | Component::ParentDir => return None,
+        }
+    }
+
+    let candidate = root_dir.join(&clean);
+    if relative.is_empty() || candidate.is_dir() {
+        return Some(candidate.join("index.html"));
+    }
+    if candidate.is_file() {
+        return Some(candidate);
+    }
+
+    let as_directory = root_dir.join(&clean).join("index.html");
+    if as_directory.is_file() {
+        return Some(as_directory);
+    }
+    None
+}
+
+fn build_response(status: &str, content_type: &str, body: &[u8]) -> Vec<u8> {
+    let headers = format!(
+        "HTTP/1.1 {status}\r\n\
+Content-Type: {content_type}\r\n\
+Content-Length: {}\r\n\
+Cache-Control: no-store, no-cache, must-revalidate, max-age=0\r\n\
+Pragma: no-cache\r\n\
+Expires: 0\r\n\
+Connection: close\r\n\
+\r\n",
+        body.len()
+    );
+
+    let mut response = headers.into_bytes();
+    response.extend_from_slice(body);
+    response
+}
+
+fn content_type(path: &Path) -> &'static str {
+    match path.extension().and_then(|ext| ext.to_str()).unwrap_or_default() {
+        "html" => "text/html; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "js" => "application/javascript; charset=utf-8",
+        "xml" => "application/xml; charset=utf-8",
+        "txt" => "text/plain; charset=utf-8",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "pdf" => "application/pdf",
+        _ => "application/octet-stream",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
+    use std::io::{Read, Write};
+    use std::net::{TcpListener, TcpStream};
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::thread;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -461,6 +599,52 @@ date: 2024-01-01 00:00\n\
         assert!(output_dir.join("_posts/example/example/image.png").is_file());
 
         fs::remove_dir_all(&source_dir).unwrap();
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn resolve_request_path_maps_directories_to_index_html() {
+        let output_dir = unique_temp_dir("serve-resolve-output");
+        write_file(&output_dir.join("index.html"), "home");
+        write_file(&output_dir.join("tags/index.html"), "tags");
+
+        let root_path = resolve_request_path(&output_dir, "/").unwrap();
+        let tags_path = resolve_request_path(&output_dir, "/tags/").unwrap();
+
+        assert_eq!(root_path, output_dir.join("index.html"));
+        assert_eq!(tags_path, output_dir.join("tags/index.html"));
+
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn serve_connection_sends_no_cache_headers() {
+        let output_dir = unique_temp_dir("serve-header-output");
+        write_file(&output_dir.join("index.html"), "home");
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let root = output_dir.clone();
+
+        let server = thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            serve_connection(stream, &root).unwrap();
+        });
+
+        let mut client = TcpStream::connect(addr).unwrap();
+        client
+            .write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+            .unwrap();
+
+        let mut response = String::new();
+        client.read_to_string(&mut response).unwrap();
+        server.join().unwrap();
+
+        assert!(response.contains("HTTP/1.1 200 OK"));
+        assert!(response.contains("Cache-Control: no-store, no-cache, must-revalidate, max-age=0"));
+        assert!(response.contains("Pragma: no-cache"));
+        assert!(response.contains("Expires: 0"));
+
         fs::remove_dir_all(&output_dir).unwrap();
     }
 }
