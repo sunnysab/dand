@@ -3,8 +3,6 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-const SITE_CONFIG_FILE: &str = "dand.toml";
-
 #[derive(Clone, Serialize, Deserialize)]
 /// Site basic information and description.
 pub struct SiteConf {
