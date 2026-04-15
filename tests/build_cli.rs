@@ -53,7 +53,7 @@ Hello\n",
         .unwrap();
 
     assert!(!output.status.success());
-    assert!(!output_dir.join("_posts/hello/index.html").is_file());
+    assert!(!output_dir.join("hello/index.html").is_file());
 
     fs::remove_dir_all(&source_dir).unwrap();
     if output_dir.exists() {
@@ -137,7 +137,7 @@ First\n",
         .status()
         .unwrap();
     assert!(first_status.success());
-    assert!(output_dir.join("_posts/first/index.html").is_file());
+    assert!(output_dir.join("first/index.html").is_file());
 
     fs::remove_file(source_dir.join("_posts/first.md")).unwrap();
 
@@ -149,7 +149,7 @@ First\n",
         .status()
         .unwrap();
     assert!(second_status.success());
-    assert!(!output_dir.join("_posts/first/index.html").exists());
+    assert!(!output_dir.join("first/index.html").exists());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
@@ -347,7 +347,7 @@ Linked Post\n",
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("_posts/linked-post/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("linked-post/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/rust/\""));
     assert!(post_html.contains("href=\"/tags/web/\""));
     assert!(post_html.contains("href=\"/categories/数据库/\""));
@@ -488,7 +488,7 @@ Slugged\n",
     assert!(!output_dir.join("tags/rust-2/index.html").exists());
     assert!(output_dir.join("categories/windows-程序/index.html").is_file());
 
-    let post_html = fs::read_to_string(output_dir.join("_posts/slugged/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("slugged/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/c-plus-plus/\""));
     assert!(post_html.contains("href=\"/tags/rust/\""));
     assert!(!post_html.contains("href=\"/tags/rust-2/\""));
@@ -534,7 +534,7 @@ Example\n",
 
     for path in [
         output_dir.join("index.html"),
-        output_dir.join("_posts/example/index.html"),
+        output_dir.join("example/index.html"),
         output_dir.join("tags/index.html"),
         output_dir.join("categories/index.html"),
     ] {
@@ -611,7 +611,7 @@ Post Two\n",
     assert!(!categories_overview.contains(">postgresql<"));
     assert!(categories_overview.contains("2 篇"));
 
-    let post_html = fs::read_to_string(output_dir.join("_posts/post-1/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("post-1/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/rust/\""));
     assert!(post_html.contains(">Rust<"));
     assert!(post_html.contains("href=\"/categories/postgresql/\""));
@@ -855,7 +855,7 @@ Example\n",
 
     for path in [
         output_dir.join("index.html"),
-        output_dir.join("_posts/example/index.html"),
+        output_dir.join("example/index.html"),
         output_dir.join("categories/随笔/index.html"),
     ] {
         let html = fs::read_to_string(path).unwrap();
@@ -895,7 +895,7 @@ Example\n",
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("_posts/example/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("example/index.html")).unwrap();
     assert!(post_html.contains("reading-settings-toggle"));
     assert!(post_html.contains("reading-settings-panel"));
     assert!(post_html.contains("阅读设置"));
