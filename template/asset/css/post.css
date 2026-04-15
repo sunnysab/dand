@@ -1,12 +1,20 @@
 
 .post-page {
-    margin: 36px 0 48px;
+    max-width: 46rem;
+    margin: 36px auto 48px;
 }
 
 .post-header {
     margin-bottom: 28px;
     padding-bottom: 18px;
     border-bottom: 1px solid rgba(34, 34, 34, 0.1);
+}
+
+.post-eyebrow {
+    margin: 0 0 8px;
+    color: #7a7a7a;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
 }
 
 .post-title {
@@ -42,8 +50,16 @@
     line-height: 1.6;
 }
 
+.post-meta-primary .post-date {
+    color: #444;
+}
+
 .post-taxonomy {
     margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 18px;
+    row-gap: 4px;
 }
 
 .post-taxonomy span {
@@ -54,6 +70,14 @@
 
 .post-content {
     line-height: 1.85;
+}
+
+.post-content > :first-child {
+    margin-top: 0;
+}
+
+.post-content > :last-child {
+    margin-bottom: 0;
 }
 
 .post-content h2,
@@ -151,7 +175,7 @@
 
 @media (max-width: 599px) {
     .post-page {
-        margin: 28px 0 36px;
+        margin: 28px auto 36px;
     }
 
     .post-title {

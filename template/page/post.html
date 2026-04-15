@@ -18,8 +18,9 @@
 {% block content %}
 <main class="post-page">
     <header class="post-header">
+        <p class="post-eyebrow">文章</p>
         <h1 class="post-title">{{ post.metadata.title }}</h1>
-        <div class="article-metadata">发布于 <span class="post-date">{{ post.metadata.publish_date }}</span></div>
+        <div class="article-metadata post-meta-primary">发布于 <span class="post-date">{{ post.metadata.publish_date }}</span></div>
         {% if categories | length > 0 or tags | length > 0 %}
         <div class="article-metadata post-taxonomy">
             {% if categories | length > 0 %}
