@@ -72,14 +72,6 @@ a:focus-visible {
     border-bottom: 1px solid rgba(34, 34, 34, 0.08);
 }
 
-@media (max-width: 599px) {
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-}
-
 .nav {
     display: flex;
     align-items: center;
@@ -194,24 +186,15 @@ a:focus-visible {
     transition: background 220ms ease, border-color 220ms ease;
 }
 
-@media (max-width: 599px) {
-    .nav {
-        width: 100%;
-    }
-
-    .listing-list li {
-        flex-direction: column;
-        margin: 6px 0;
-    }
-}
-
 .listing-list li:hover {
     background: rgba(200, 217, 232, 0.5);
     border-bottom-color: rgba(34, 34, 34, 0.16);
 }
 
 .listing-list li > a {
+    display: block;
     font-weight: 500;
+    line-height: 1.5;
 }
 
 #post-list .post-date,
@@ -242,7 +225,60 @@ footer {
     text-align: center;
 }
 
-@media (max-width: 599px) {
+@media (max-width: 900px) {
+    body {
+        width: min(92vw, 960px);
+    }
+
+    .page-shell-post {
+        width: min(95vw, 1200px);
+    }
+
+    .header {
+        gap: 14px;
+    }
+
+    .listing-page {
+        margin: 24px 0 40px;
+    }
+
+    .page-head {
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        font-size: 1.85rem;
+    }
+}
+
+@media (max-width: 640px) {
+    body {
+        width: calc(100% - 32px);
+    }
+
+    .page-shell-post {
+        width: calc(100% - 24px);
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0 12px;
+    }
+
+    .nav {
+        width: 100%;
+    }
+
+    .nav-links {
+        gap: 8px;
+    }
+
+    .nav-links a {
+        padding: 6px 12px;
+    }
+
     .listing-page {
         margin: 22px 0 36px;
     }
@@ -251,16 +287,80 @@ footer {
         margin-bottom: 18px;
     }
 
+    .page-title {
+        font-size: 1.68rem;
+    }
+
+    .page-overview {
+        margin-top: 10px;
+        font-size: 0.97rem;
+        line-height: 1.65;
+    }
+
     .site-title {
         font-size: 1.45rem;
     }
 
+    .listing-list li {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+        margin: 6px 0;
+        padding: 10px 0;
+    }
+
+    #post-list .post-date,
+    #archive-list .archive-count {
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    footer {
+        margin-top: 32px;
+    }
+
     .copyright {
         flex-direction: column;
+        gap: 4px;
+        padding: 20px 0 24px;
         padding-bottom: 24px;
     }
 
     .copyright-sep {
         display: none;
+    }
+}
+
+@media (max-width: 420px) {
+    body {
+        width: calc(100% - 24px);
+    }
+
+    .page-shell-post {
+        width: calc(100% - 16px);
+    }
+
+    .site-title {
+        font-size: 1.32rem;
+    }
+
+    .nav-links {
+        font-size: 13px;
+    }
+
+    .nav-links a {
+        padding: 5px 10px;
+    }
+
+    .page-eyebrow {
+        font-size: 0.82rem;
+    }
+
+    .page-title {
+        font-size: 1.48rem;
+    }
+
+    .listing-list li > a {
+        font-size: 0.98rem;
     }
 }
