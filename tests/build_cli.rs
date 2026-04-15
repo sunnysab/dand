@@ -900,11 +900,13 @@ Example\n",
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
     assert!(index_html.contains("<main class=\"listing-page\">"));
     assert!(index_html.contains("<h1 class=\"page-title\">@sunnysab</h1>"));
+    assert!(index_html.contains("<title>@sunnysab</title>"));
     assert!(!index_html.contains("<div class=\"nav-logo\"><h1"));
 
     let category_html =
         fs::read_to_string(output_dir.join("categories/随笔/index.html")).unwrap();
     assert!(category_html.contains("<h1 class=\"page-title\">随笔</h1>"));
+    assert!(category_html.contains("<title>随笔 - @sunnysab</title>"));
     assert!(!category_html.contains("<div class=\"nav-logo\"><h1"));
 
     let categories_overview =

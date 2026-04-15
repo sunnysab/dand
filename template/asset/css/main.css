@@ -105,11 +105,6 @@ a:focus-visible {
     border-radius: 50%;
 }
 
-.nav-logo h1 {
-    margin: 0;
-    line-height: 1.1;
-}
-
 .site-title {
     display: inline-block;
     margin: 0;

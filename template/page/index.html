@@ -1,12 +1,6 @@
 {% extends 'layout/base.html' %}
 
-{% block title %}
-{% if category %}
-{{ category ~ ' - ' ~ site.title }}
-{% else %}
-{{ site.title }}
-{% endif %}
-{% endblock %}
+{% block title %}{% if category %}{{ category ~ ' - ' ~ site.title }}{% else %}{{ site.title }}{% endif %}{% endblock %}
 
 {% block content %}
 <main class="listing-page">
