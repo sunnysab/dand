@@ -13,10 +13,10 @@
     <section class="page-head">
         {% if category %}
         <p class="page-eyebrow">分类</p>
-        <h2 class="page-title">{{ category }}</h2>
+        <h1 class="page-title">{{ category }}</h1>
         {% else %}
         <p class="page-eyebrow">最近文章</p>
-        <h2 class="page-title">{{ site.title }}</h2>
+        <h1 class="page-title">{{ site.title }}</h1>
         {% endif %}
         {% if overview_href and overview_title %}
         <p class="page-overview"><a href="{{ overview_href }}">{{ overview_title }}</a></p>
