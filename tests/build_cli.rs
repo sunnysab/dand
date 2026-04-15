@@ -4,6 +4,8 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::{Datelike, Local};
+
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 fn unique_temp_dir(prefix: &str) -> PathBuf {
@@ -736,6 +738,83 @@ Example\n",
         fs::read_to_string(output_dir.join("categories/数据库/index.html")).unwrap();
     assert!(category_html.contains("href=\"/categories/\""));
     assert!(category_html.contains(">返回分类总览<"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_renders_footer_from_config() {
+    let source_dir = unique_temp_dir("footer-source");
+    let output_dir = unique_temp_dir("footer-output");
+    let current_year = Local::now().year();
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n\n[footer]\nstart_year = 2020\nbeian = \"沪ICP备20260001号\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/example.md"),
+        "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Example\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
+    assert!(index_html.contains(&format!("sunnysab.cn &copy; 2020 - {current_year}")));
+    assert!(index_html.contains("沪ICP备20260001号"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_renders_category_pages_with_zh_cn_lang() {
+    let source_dir = unique_temp_dir("lang-source");
+    let output_dir = unique_temp_dir("lang-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n\n[footer]\nstart_year = 2020\nbeian = \"沪ICP备20260001号\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/example.md"),
+        "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+categories:\n\
+  - 随笔\n\
+---\n\
+\n\
+Example\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let category_html =
+        fs::read_to_string(output_dir.join("categories/随笔/index.html")).unwrap();
+    assert!(category_html.contains("<html lang=\"zh-CN\">"));
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();

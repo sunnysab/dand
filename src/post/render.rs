@@ -28,6 +28,7 @@ impl<'a> Render for PostRenderer<'a> {
     fn html(&self) -> anyhow::Result<String> {
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
+        parameters.insert("footer", &self.site.footer_view());
         parameters.insert("post", &self.post);
         let (tags, categories) = self.taxonomy_links();
         parameters.insert("tags", &tags);

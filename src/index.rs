@@ -28,6 +28,7 @@ impl<'a> Render for IndexRenderer<'a> {
     fn html(&self) -> Result<String> {
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
+        parameters.insert("footer", &self.site.footer_view());
         parameters.insert("posts", &self.sorted_posts());
 
         let html = template().render("page/index.html", &parameters)?;
@@ -54,6 +55,7 @@ impl<'a> Render for TagRenderer<'a> {
     fn html(&self) -> Result<String> {
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
+        parameters.insert("footer", &self.site.footer_view());
         parameters.insert("posts", &self.sorted_posts());
         parameters.insert("category", &self.tag.name());
         parameters.insert("category_href", &format!("/tags/{}/", self.tag.slug()));
@@ -84,6 +86,7 @@ impl<'a> Render for CategoryRenderer<'a> {
     fn html(&self) -> Result<String> {
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
+        parameters.insert("footer", &self.site.footer_view());
         parameters.insert("posts", &self.sorted_posts());
         parameters.insert("category", &self.category.name());
         parameters.insert(
@@ -211,6 +214,7 @@ fn render_archive_overview(
 ) -> Result<String> {
     let mut parameters = tera::Context::new();
     parameters.insert("site", site);
+    parameters.insert("footer", &site.footer_view());
     parameters.insert("title", title);
     parameters.insert("items", &items);
 
