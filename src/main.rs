@@ -1,6 +1,9 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Component, Path, PathBuf};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, Subcommand};
@@ -315,6 +318,52 @@ fn main() -> anyhow::Result<()> {
             eprintln!("Serving {}", address);
             serve(&output_dir, &address)?;
         }
+        Commands::Watch {
+            source_dir,
+            output_dir,
+            port,
+            interval_ms,
+            config,
+        } => {
+            let config_path = resolve_config_path(&source_dir, config)?;
+            let blog = BlogBuilder::new()
+                .src_dir(&source_dir)?
+                .output_dir(&output_dir)?
+                .conf(&config_path)?
+                .build()?;
+            blog.render()?;
+
+            let address = format!("127.0.0.1:{port}");
+            let listener = bind_server(&address)?;
+            let server_root = output_dir.clone();
+            thread::spawn(move || {
+                if let Err(error) = serve_with_listener(listener, server_root) {
+                    eprintln!("preview server stopped: {error:#}");
+                }
+            });
+
+            let watch_paths = watch_paths(&source_dir, &config_path)?;
+            let mut current_state = capture_watch_state(&watch_paths)?;
+            let poll_interval = Duration::from_millis(interval_ms);
+            eprintln!("Watching {} and serving {}", source_dir.display(), address);
+
+            loop {
+                thread::sleep(poll_interval);
+                let observed_state = capture_watch_state(&watch_paths)?;
+                if observed_state == current_state {
+                    continue;
+                }
+
+                current_state = observed_state;
+                eprintln!("Change detected, rebuilding...");
+                match build_blog(&source_dir, &output_dir, Some(config_path.clone()))
+                    .and_then(|blog| blog.render())
+                {
+                    Ok(()) => eprintln!("Rebuild complete."),
+                    Err(error) => eprintln!("Rebuild failed: {error:#}"),
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -349,6 +398,23 @@ enum Commands {
         /// Local preview port
         #[arg(short = 'p', long = "port", default_value_t = 8000)]
         port: u16,
+        /// Optional path to dand.toml
+        #[arg(short = 'c', long = "config")]
+        config: Option<PathBuf>,
+    },
+    /// Build the site, then watch source/template changes and rebuild automatically.
+    Watch {
+        /// Source directory containing posts and dand.toml
+        source_dir: PathBuf,
+        /// Output directory for generated HTML
+        #[arg(short = 'o', long = "output")]
+        output_dir: PathBuf,
+        /// Local preview port
+        #[arg(short = 'p', long = "port", default_value_t = 8000)]
+        port: u16,
+        /// Poll interval in milliseconds
+        #[arg(long = "interval", default_value_t = 1000)]
+        interval_ms: u64,
         /// Optional path to dand.toml
         #[arg(short = 'c', long = "config")]
         config: Option<PathBuf>,
@@ -401,12 +467,19 @@ fn resolve_config_path(source_dir: &Path, config: Option<PathBuf>) -> Result<Pat
     )
 }
 
+fn bind_server(address: &str) -> Result<TcpListener> {
+    TcpListener::bind(address).with_context(|| format!("failed to bind preview server to {}", address))
+}
+
 fn serve(root_dir: &Path, address: &str) -> Result<()> {
-    let listener = TcpListener::bind(address)
-        .with_context(|| format!("failed to bind preview server to {}", address))?;
+    let listener = bind_server(address)?;
+    serve_with_listener(listener, root_dir.to_path_buf())
+}
+
+fn serve_with_listener(listener: TcpListener, root_dir: PathBuf) -> Result<()> {
     for stream in listener.incoming() {
         let stream = stream?;
-        if let Err(error) = serve_connection(stream, root_dir) {
+        if let Err(error) = serve_connection(stream, &root_dir) {
             eprintln!("failed to serve request: {error:#}");
         }
     }
@@ -502,6 +575,57 @@ fn content_type(path: &Path) -> &'static str {
         "pdf" => "application/pdf",
         _ => "application/octet-stream",
     }
+}
+
+fn watch_paths(source_dir: &Path, config_path: &Path) -> Result<Vec<PathBuf>> {
+    let mut roots = BTreeSet::new();
+    roots.insert(source_dir.canonicalize().with_context(|| {
+        format!("failed to canonicalize source directory: {}", source_dir.display())
+    })?);
+    roots.insert(config_path.canonicalize().with_context(|| {
+        format!("failed to canonicalize config path: {}", config_path.display())
+    })?);
+
+    if let Ok(cwd) = std::env::current_dir() {
+        let template_dir = cwd.join("template");
+        if template_dir.exists() {
+            roots.insert(template_dir.canonicalize().with_context(|| {
+                format!("failed to canonicalize template directory: {}", template_dir.display())
+            })?);
+        }
+    }
+
+    Ok(roots.into_iter().collect())
+}
+
+fn capture_watch_state(paths: &[PathBuf]) -> Result<BTreeMap<PathBuf, u128>> {
+    let mut state = BTreeMap::new();
+    for path in paths {
+        capture_watch_entry(path, &mut state)?;
+    }
+    Ok(state)
+}
+
+fn capture_watch_entry(path: &Path, state: &mut BTreeMap<PathBuf, u128>) -> Result<()> {
+    let metadata = std::fs::metadata(path)
+        .with_context(|| format!("failed to stat watched path: {}", path.display()))?;
+    state.insert(path.to_path_buf(), modified_millis(metadata.modified()?));
+
+    if metadata.is_dir() {
+        for entry in std::fs::read_dir(path)
+            .with_context(|| format!("failed to read watched directory: {}", path.display()))?
+        {
+            let entry = entry?;
+            capture_watch_entry(&entry.path(), state)?;
+        }
+    }
+    Ok(())
+}
+
+fn modified_millis(time: SystemTime) -> u128 {
+    time.duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
 }
 
 #[cfg(test)]
@@ -646,5 +770,21 @@ date: 2024-01-01 00:00\n\
         assert!(response.contains("Expires: 0"));
 
         fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn capture_watch_state_changes_after_file_update() {
+        let watched_dir = unique_temp_dir("watch-state-dir");
+        let file_path = watched_dir.join("note.txt");
+        write_file(&file_path, "first");
+
+        let before = capture_watch_state(std::slice::from_ref(&watched_dir)).unwrap();
+        std::thread::sleep(Duration::from_millis(5));
+        write_file(&file_path, "second");
+        let after = capture_watch_state(std::slice::from_ref(&watched_dir)).unwrap();
+
+        assert_ne!(before, after);
+
+        fs::remove_dir_all(&watched_dir).unwrap();
     }
 }
