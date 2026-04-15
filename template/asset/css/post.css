@@ -68,32 +68,58 @@ li p {
 
 code {
     background-color: rgba(0, 0, 0, 0.05);
-    line-height: 1.2em;
-    font-size: 75%;
+    line-height: 1.5;
+    font-size: 85%;
+    border-radius: 4px;
 }
 
 /* Inline code: p > code, code block: pre > code */
 p > code {
-    padding: 0px 4px;
+    padding: 1px 6px;
+}
+
+pre {
+    overflow-x: auto;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.04);
+}
+
+pre code {
+    display: block;
+    padding: 0;
+    background: transparent;
 }
 
 p > img {
     display: block;
-    text-align: center;
-    max-width: calc(100% - 2em);
-    margin: 8px 0;
+    max-width: min(100%, calc(100% - 2em));
+    margin: 20px auto;
+    border-radius: 6px;
 }
 
-blockquote * {
-    font-style: italic;
+blockquote {
+    margin: 1.4em 0;
+    padding: 0.3em 0 0.3em 1.1em;
+    border-left: 3px solid rgba(34, 34, 34, 0.2);
+    color: #555;
+    background: rgba(0, 0, 0, 0.02);
 }
 
 table {
     width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
 }
 
 thead, tfoot {
     background: rgba(0, 0, 0, 0.05);
+}
+
+th,
+td {
+    padding: 8px 10px;
+    text-align: left;
 }
 
 tbody td {
