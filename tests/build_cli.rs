@@ -896,12 +896,15 @@ Example\n",
     assert!(status.success());
 
     let post_html = fs::read_to_string(output_dir.join("example/index.html")).unwrap();
+    assert!(post_html.contains("<body class=\"page-shell page-shell-post\">"));
     assert!(post_html.contains("reading-settings-toggle"));
     assert!(post_html.contains("reading-settings-panel"));
     assert!(post_html.contains("阅读设置"));
+    assert!(post_html.contains("data-reading-justify checked"));
 
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
     assert!(!index_html.contains("reading-settings-toggle"));
+    assert!(!index_html.contains("page-shell-post"));
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();

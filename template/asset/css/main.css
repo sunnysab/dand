@@ -1,4 +1,8 @@
-html,
+html {
+    width: 100%;
+    margin: 0;
+}
+
 body {
     width: 90%;
     max-width: 1024px;
@@ -15,6 +19,11 @@ body {
     -moz-osx-font-smoothing: grayscale;
     -moz-font-feature-settings: "liga" on;
     line-height: 1.75;
+}
+
+.page-shell-post {
+    width: min(96vw, 1440px);
+    max-width: none;
 }
 
 h1,

@@ -3,6 +3,7 @@
     --reader-max-width: 46rem;
     --reader-font-size: 1.125rem;
     --reader-font-family: serif;
+    width: min(100%, var(--reader-max-width));
     max-width: var(--reader-max-width);
     margin: 36px auto 48px;
 }
@@ -75,11 +76,13 @@
     font-family: var(--reader-font-family);
     font-size: var(--reader-font-size);
     line-height: 1.85;
-}
-
-.post-content[data-reader-justify="true"] {
     text-align: justify;
     text-justify: inter-character;
+}
+
+.post-content[data-reader-justify="false"] {
+    text-align: left;
+    text-justify: auto;
 }
 
 .post-content > :first-child {

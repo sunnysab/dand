@@ -2,6 +2,8 @@
 
 {% block title %}{{ post.metadata.title ~ ' - ' ~ site.title }}{% endblock %}
 
+{% block body_class %}page-shell page-shell-post{% endblock %}
+
 {% block head_extra %}
 <link href="/asset/css/post.css" rel="stylesheet">
 <!-- highlight.js -->
@@ -71,7 +73,7 @@
                 <span>使用非衬线正文</span>
             </label>
             <label class="reading-settings-check" for="reading-justify">
-                <input id="reading-justify" name="reading-justify" type="checkbox" data-reading-justify>
+                <input id="reading-justify" name="reading-justify" type="checkbox" data-reading-justify checked>
                 <span>正文两端对齐</span>
             </label>
         </section>

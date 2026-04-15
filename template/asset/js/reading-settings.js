@@ -23,7 +23,7 @@ function initReadingSettings() {
         fontSize: 18,
         pageWidth: 46,
         useSans: false,
-        justify: false
+        justify: true
     };
 
     let saved = {};

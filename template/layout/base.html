@@ -6,7 +6,7 @@
     <link href="/asset/css/main.css" rel="stylesheet">
     {% block head_extra %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}page-shell{% endblock %}">
 {% include 'layout/site_header.html' %}
 {% block content %}{% endblock %}
 {% include 'layout/site_footer.html' %}
