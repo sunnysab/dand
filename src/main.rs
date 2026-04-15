@@ -454,16 +454,12 @@ fn resolve_config_path(source_dir: &Path, config: Option<PathBuf>) -> Result<Pat
         return Ok(path);
     }
 
-    let candidates = [source_dir.join("dand.toml"), source_dir.join("_posts/dand.toml")];
-    if let Some(found) = candidates.into_iter().find(|path| path.is_file()) {
-        return Ok(found);
+    let candidate = source_dir.join("dand.toml");
+    if candidate.is_file() {
+        return Ok(candidate);
     }
 
-    bail!(
-        "could not find dand.toml in {} or {}/_posts",
-        source_dir.display(),
-        source_dir.display()
-    )
+    bail!("could not find dand.toml in {}", source_dir.display())
 }
 
 fn bind_server(address: &str) -> Result<TcpListener> {

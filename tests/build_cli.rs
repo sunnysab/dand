@@ -25,7 +25,7 @@ fn write_file(path: &Path, content: &str) {
 }
 
 #[test]
-fn build_uses_posts_config_by_default() {
+fn build_requires_source_root_config_by_default() {
     let source_dir = unique_temp_dir("source");
     let output_dir = unique_temp_dir("output");
 
@@ -44,19 +44,21 @@ date: 2024-01-01 00:00\n\
 Hello\n",
     );
 
-    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+    let output = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
         .arg("build")
         .arg(&source_dir)
         .arg("-o")
         .arg(&output_dir)
-        .status()
+        .output()
         .unwrap();
 
-    assert!(status.success());
-    assert!(output_dir.join("_posts/hello/index.html").is_file());
+    assert!(!output.status.success());
+    assert!(!output_dir.join("_posts/hello/index.html").is_file());
 
     fs::remove_dir_all(&source_dir).unwrap();
-    fs::remove_dir_all(&output_dir).unwrap();
+    if output_dir.exists() {
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
 }
 
 #[test]
