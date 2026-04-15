@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    {% include 'layout/head_default_meta.html' %}
+    <title>{% block title %}{{ site.title }}{% endblock %}</title>
+    <link href="/asset/css/main.css" rel="stylesheet">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+{% include 'layout/site_header.html' %}
+{% block content %}{% endblock %}
+{% include 'layout/site_footer.html' %}
+<script src="/asset/js/display.js" type="application/javascript"></script>
+{% block body_scripts %}{% endblock %}
+</body>
+</html>

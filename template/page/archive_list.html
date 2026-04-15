@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    {% include 'layout/head_default_meta.html' %}
-    <title>{{ title ~ ' - ' ~ site.title }}</title>
-    <link href="/asset/css/main.css" rel="stylesheet">
-</head>
-<body>
-{% include 'layout/site_header.html' %}
+{% extends 'layout/base.html' %}
+
+{% block title %}{{ title ~ ' - ' ~ site.title }}{% endblock %}
+
+{% block content %}
 <main class="listing-page">
     <section class="page-head">
         <p class="page-eyebrow">归档</p>
@@ -21,6 +17,4 @@
         {% endfor %}
     </ul>
 </main>
-{% include 'layout/site_footer.html' %}
-</body>
-</html>
+{% endblock %}
