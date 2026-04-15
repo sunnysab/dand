@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title ~ ' - ' ~ site.title }}</title>
+    <meta content="dand" name="generator">
+    <meta content="website" property="og:type">
+    <meta content="{{ site.description }}" property="description">
+    <link href="/asset/css/main.css" rel="stylesheet">
+</head>
+<body>
+<header class="header">
+    <div class="nav-logo"><h1 class="font-sans"><a href="{{ site.home }}">{{ site.title }}</a></h1></div>
+    <nav class="nav">
+        <ul class="nav-links">
+            <li>关于</li>
+        </ul>
+    </nav>
+</header>
+<main>
+    <h2>{{ title }}</h2>
+    <ul id="archive-list">
+        {% for item in items %}
+        <li>
+            <a href="{{ item.href }}">{{ item.name }}</a>
+            <span class="archive-count">{{ item.post_count }} 篇</span>
+        </li>
+        {% endfor %}
+    </ul>
+</main>
+<footer>
+    {% include 'layout/copyright.html' %}
+</footer>
+</body>
+</html>

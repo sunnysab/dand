@@ -351,3 +351,95 @@ Linked Post\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_generates_tag_and_category_overview_pages() {
+    let source_dir = unique_temp_dir("archive-overview-source");
+    let output_dir = unique_temp_dir("archive-overview-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/rust-db.md"),
+        "---\n\
+title: Rust DB\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - rust\n\
+  - db\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Rust DB\n",
+    );
+    write_file(
+        &source_dir.join("_posts/web.md"),
+        "---\n\
+title: Web\n\
+date: 2024-01-02 00:00\n\
+tags:\n\
+  - web\n\
+categories:\n\
+  - 网络\n\
+---\n\
+\n\
+Web\n",
+    );
+    write_file(
+        &source_dir.join("_posts/rust-hidden.md"),
+        "---\n\
+title: Rust Hidden\n\
+date: 2024-01-03 00:00\n\
+is_hidden: true\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Rust Hidden\n",
+    );
+    write_file(
+        &source_dir.join("_drafts/rust-draft.md"),
+        "---\n\
+title: Rust Draft\n\
+date: 2024-01-04 00:00\n\
+tags:\n\
+  - rust\n\
+categories:\n\
+  - 数据库\n\
+---\n\
+\n\
+Rust Draft\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let tags_overview = fs::read_to_string(output_dir.join("tags/index.html")).unwrap();
+    assert!(tags_overview.contains("href=\"/tags/rust/\""));
+    assert!(tags_overview.contains("href=\"/tags/db/\""));
+    assert!(tags_overview.contains("href=\"/tags/web/\""));
+    assert!(tags_overview.contains("rust"));
+    assert!(tags_overview.contains("1 篇"));
+
+    let categories_overview =
+        fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    assert!(categories_overview.contains("href=\"/categories/数据库/\""));
+    assert!(categories_overview.contains("href=\"/categories/网络/\""));
+    assert!(categories_overview.contains("数据库"));
+    assert!(categories_overview.contains("1 篇"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}

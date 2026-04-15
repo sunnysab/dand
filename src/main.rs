@@ -7,7 +7,9 @@ use discover::PostWalker;
 
 use crate::discover::WalkDirectory;
 use crate::env::Environment;
-use crate::index::{CategoryRenderer, IndexRenderer, TagRenderer};
+use crate::index::{
+    CategoryOverviewRenderer, CategoryRenderer, IndexRenderer, TagOverviewRenderer, TagRenderer,
+};
 use crate::post::PostRenderer;
 use crate::render::Render;
 use crate::site::SiteConf;
@@ -164,6 +166,29 @@ impl Blog {
                 format!("failed to write category html: {}", html_file.display())
             })?;
         }
+
+        let tags_overview = TagOverviewRenderer::new(&self.site, &self.env).html()?;
+        let tags_index = self.output_dir.join("tags").join("index.html");
+        if let Some(parent) = tags_index.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create tags directory: {}", parent.display()))?;
+        }
+        std::fs::write(&tags_index, tags_overview)
+            .with_context(|| format!("failed to write tags overview: {}", tags_index.display()))?;
+
+        let categories_overview = CategoryOverviewRenderer::new(&self.site, &self.env).html()?;
+        let categories_index = self.output_dir.join("categories").join("index.html");
+        if let Some(parent) = categories_index.parent() {
+            std::fs::create_dir_all(parent).with_context(|| {
+                format!("failed to create categories directory: {}", parent.display())
+            })?;
+        }
+        std::fs::write(&categories_index, categories_overview).with_context(|| {
+            format!(
+                "failed to write categories overview: {}",
+                categories_index.display()
+            )
+        })?;
         Ok(())
     }
 
