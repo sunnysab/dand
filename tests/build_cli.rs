@@ -859,7 +859,7 @@ Example\n",
         output_dir.join("categories/随笔/index.html"),
     ] {
         let html = fs::read_to_string(path).unwrap();
-        assert!(html.contains("<a href=\"/\">test</a>"));
+        assert!(html.contains("class=\"site-title font-sans\" href=\"/\">test</a>"));
     }
 
     fs::remove_dir_all(&source_dir).unwrap();
