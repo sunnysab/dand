@@ -3,17 +3,51 @@
 {% block title %}{{ document_title }}{% endblock %}
 
 {% block content %}
+{% if supports_year_grouping %}
+<main class="listing-page" data-index-grouping-root data-group-by-year-default="{{ group_by_year_default }}" data-group-by-year="true">
+{% else %}
 <main class="listing-page">
-    <section class="page-head">
+{% endif %}
+    <section class="page-head{% if supports_year_grouping %} page-head-with-toggle{% endif %}">
+        <div class="page-head-main">
         <p class="page-eyebrow">{{ page_eyebrow }}</p>
-        {% if document_title != site.title %}
         <h1 class="page-title">{{ page_title }}</h1>
-        {% endif %}
         {% if overview_href and overview_title %}
         <p class="page-overview"><a href="{{ overview_href }}">{{ overview_title }}</a></p>
         {% endif %}
+        </div>
+        {% if supports_year_grouping %}
+        <button class="index-group-toggle" type="button" data-group-toggle aria-pressed="true" aria-label="按年份分组：开" title="按年份分组：开">
+            <span class="index-group-toggle-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </button>
+        {% endif %}
     </section>
+    {% if supports_year_grouping %}
+    <div class="year-group-list" data-grouped-post-list>
+        {% for group in year_groups %}
+        <section class="year-group">
+            <h2 class="year-group-title">{{ group.year }}</h2>
+            <ul class="listing-list">
+                {% for post in group.posts %}
+                <li>
+                    <a href="{{ '/' ~ post.reference.relative_name ~ '/' }}">{{ post.metadata.title }}</a>
+                    <span class="post-date">{{ post.metadata.publish_date }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if supports_year_grouping %}
+    <ul id="post-list" class="listing-list" data-flat-post-list>
+    {% else %}
     <ul id="post-list" class="listing-list">
+    {% endif %}
         {% for post in posts %}
         <li>
             <a href="{{ '/' ~ post.reference.relative_name ~ '/' }}">{{ post.metadata.title }}</a>
@@ -26,6 +60,9 @@
 
 {% block body_scripts %}
 <script type="application/javascript">
-    replaceDateString("#post-list > li > span");
+    replaceDateString(".post-date");
+    {% if supports_year_grouping %}
+    initIndexGrouping();
+    {% endif %}
 </script>
 {% endblock %}

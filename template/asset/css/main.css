@@ -141,6 +141,17 @@ a:focus-visible {
     margin-bottom: 22px;
 }
 
+.page-head-with-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.page-head-main {
+    min-width: 0;
+}
+
 .page-eyebrow {
     margin: 0 0 6px;
     color: #777;
@@ -165,6 +176,66 @@ a:focus-visible {
     text-decoration: underline;
     text-decoration-color: rgba(34, 34, 34, 0.18);
     text-underline-offset: 0.15em;
+}
+
+.index-group-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin: 2px 0 0;
+    padding: 0;
+    border: 1px solid rgba(34, 34, 34, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    color: #444;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.index-group-toggle:hover {
+    background: rgba(34, 34, 34, 0.06);
+    border-color: rgba(34, 34, 34, 0.2);
+}
+
+.index-group-toggle[aria-pressed="true"] {
+    background: rgba(34, 34, 34, 0.08);
+    border-color: rgba(34, 34, 34, 0.22);
+}
+
+.index-group-toggle-icon {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.index-group-toggle-icon span {
+    display: block;
+    width: 14px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+[data-group-by-year="true"] [data-flat-post-list] {
+    display: none;
+}
+
+[data-group-by-year="false"] [data-grouped-post-list] {
+    display: none;
+}
+
+.year-group + .year-group {
+    margin-top: 28px;
+}
+
+.year-group-title {
+    margin: 0 0 10px;
+    color: #555;
+    font-size: 1.05rem;
+    line-height: 1.3;
 }
 
 .listing-list {
@@ -297,6 +368,10 @@ footer {
         margin-bottom: 18px;
     }
 
+    .page-head-with-toggle {
+        gap: 12px;
+    }
+
     .page-title {
         font-size: 1.68rem;
     }
@@ -309,6 +384,11 @@ footer {
 
     .site-title {
         font-size: 1.45rem;
+    }
+
+    .index-group-toggle {
+        width: 32px;
+        height: 32px;
     }
 
     .listing-list li {
@@ -368,6 +448,10 @@ footer {
 
     .page-title {
         font-size: 1.48rem;
+    }
+
+    .page-head-with-toggle {
+        gap: 10px;
     }
 
     .listing-list li > a {

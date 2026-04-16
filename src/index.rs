@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use anyhow::Result;
+use chrono::Datelike;
 use serde::Serialize;
 
 use crate::env::{template, Environment};
@@ -28,13 +29,17 @@ impl<'a> IndexRenderer<'a> {
 
 impl<'a> Render for IndexRenderer<'a> {
     fn html(&self) -> Result<String> {
+        let posts = self.sorted_posts();
         let mut parameters = tera::Context::new();
         parameters.insert("site", &self.site);
         parameters.insert("footer", &self.site.footer_view());
-        parameters.insert("posts", &self.sorted_posts());
+        parameters.insert("posts", &posts);
+        parameters.insert("year_groups", &build_year_groups(&posts));
         parameters.insert("page_eyebrow", "最近文章");
         parameters.insert("page_title", &self.site.title);
         parameters.insert("document_title", &self.site.title);
+        parameters.insert("supports_year_grouping", &true);
+        parameters.insert("group_by_year_default", &true);
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
@@ -72,6 +77,7 @@ impl<'a> Render for TagRenderer<'a> {
             "document_title",
             &format!("{} - {}", self.tag.name(), self.site.title),
         );
+        parameters.insert("supports_year_grouping", &false);
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
@@ -112,10 +118,17 @@ impl<'a> Render for CategoryRenderer<'a> {
             "document_title",
             &format!("{} - {}", self.category.name(), self.site.title),
         );
+        parameters.insert("supports_year_grouping", &false);
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
     }
+}
+
+#[derive(Debug, Serialize)]
+struct YearGroup {
+    year: i32,
+    posts: Vec<SharedPost>,
 }
 
 #[derive(Debug, Serialize)]
@@ -227,6 +240,23 @@ fn build_tag_overview_items(env: &Environment) -> Vec<TagOverviewItem> {
             .then_with(|| a_first.cmp(b_first))
     });
     items
+}
+
+fn build_year_groups(posts: &[SharedPost]) -> Vec<YearGroup> {
+    let mut groups: Vec<YearGroup> = Vec::new();
+
+    for post in posts {
+        let year = post.0.borrow().metadata.publish_date.year();
+        match groups.last_mut() {
+            Some(group) if group.year == year => group.posts.push(post.clone()),
+            _ => groups.push(YearGroup {
+                year,
+                posts: vec![post.clone()],
+            }),
+        }
+    }
+
+    groups
 }
 
 fn render_tag_overview(

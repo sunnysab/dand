@@ -67,3 +67,52 @@ function addSectionNumber() {
         sections[i].textContent = convertedTitle;
     }
 }
+
+function initIndexGrouping() {
+    const storageKey = "dand:index-group-by-year";
+    const root = document.querySelector("[data-index-grouping-root]");
+    if (!root) {
+        return;
+    }
+
+    const toggle = root.querySelector("[data-group-toggle]");
+    if (!toggle) {
+        return;
+    }
+
+    const defaultEnabled = root.dataset.groupByYearDefault !== "false";
+    let enabled = defaultEnabled;
+
+    try {
+        const storedValue = window.localStorage.getItem(storageKey);
+        if (storedValue === "true") {
+            enabled = true;
+        } else if (storedValue === "false") {
+            enabled = false;
+        }
+    } catch (_) {
+        enabled = defaultEnabled;
+    }
+
+    const applyState = (nextEnabled, persist) => {
+        root.dataset.groupByYear = nextEnabled ? "true" : "false";
+        toggle.setAttribute("aria-pressed", nextEnabled ? "true" : "false");
+        toggle.setAttribute("aria-label", nextEnabled ? "按年份分组：开" : "按年份分组：关");
+        toggle.setAttribute("title", nextEnabled ? "按年份分组：开" : "按年份分组：关");
+
+        if (!persist) {
+            return;
+        }
+
+        try {
+            window.localStorage.setItem(storageKey, nextEnabled ? "true" : "false");
+        } catch (_) {
+            // Ignore storage failures and keep the in-memory UI state.
+        }
+    };
+
+    applyState(enabled, false);
+    toggle.addEventListener("click", () => {
+        applyState(root.dataset.groupByYear !== "true", true);
+    });
+}

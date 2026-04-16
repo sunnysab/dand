@@ -1165,7 +1165,7 @@ Example\n",
     assert!(status.success());
 
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
-    assert!(index_html.contains("<main class=\"listing-page\">"));
+    assert!(index_html.contains("<main class=\"listing-page\""));
     assert!(index_html.contains("<h1 class=\"page-title\">@sunnysab</h1>"));
     assert!(index_html.contains("<title>@sunnysab</title>"));
     assert!(!index_html.contains("<div class=\"nav-logo\"><h1"));
@@ -1178,6 +1178,64 @@ Example\n",
     let categories_overview = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
     assert!(categories_overview.contains("<h1 class=\"page-title\">分类</h1>"));
     assert!(!categories_overview.contains("<div class=\"nav-logo\"><h1"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_homepage_supports_year_group_toggle() {
+    let source_dir = unique_temp_dir("index-grouping-source");
+    let output_dir = unique_temp_dir("index-grouping-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"@sunnysab\"\nhome = \"https://example.com/blog/\"\ndescription = \"test\"\n\n[footer]\nstart_year = 2020\nbeian = \"沪ICP备20260001号\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/post-2024.md"),
+        "---\n\
+title: Newer\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Newer\n",
+    );
+    write_file(
+        &source_dir.join("_posts/post-2023.md"),
+        "---\n\
+title: Older\n\
+date: 2023-01-01 00:00\n\
+---\n\
+\n\
+Older\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
+    assert!(index_html.contains("data-index-grouping-root"));
+    assert!(index_html.contains("data-group-by-year-default=\"true\""));
+    assert!(index_html.contains("data-group-toggle"));
+    assert!(index_html.contains("data-grouped-post-list"));
+    assert!(index_html.contains("data-flat-post-list"));
+    assert!(index_html.contains(">2024<"));
+    assert!(index_html.contains(">2023<"));
+
+    let category_html = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+    assert!(!category_html.contains("data-group-toggle"));
+    assert!(!category_html.contains("data-grouped-post-list"));
+
+    assert!(index_html.contains("data-index-grouping-root"));
+    assert!(index_html.contains("initIndexGrouping();"));
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
