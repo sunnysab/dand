@@ -719,6 +719,37 @@ mod tests {
         fs::write(path, content).unwrap();
     }
 
+    fn build_blog_from_posts(posts: &[(&str, &str)]) -> (Blog, PathBuf, PathBuf) {
+        let source_dir = unique_temp_dir("render-source");
+        let output_dir = unique_temp_dir("render-output");
+        let mut env = Environment::new();
+        let walker = PostWalker::from(source_dir.clone());
+
+        write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+
+        for (relative_path, content) in posts {
+            let full_path = source_dir.join(relative_path);
+            write_file(&full_path, content);
+
+            let reference = walker.open(full_path).unwrap();
+            post::load(reference).unwrap().build(&mut env);
+        }
+
+        let blog = Blog {
+            site: SiteConf {
+                title: String::from("test"),
+                home: String::from("https://example.com/"),
+                description: String::from("test"),
+                footer: site::FooterConf::default(),
+            },
+            path: source_dir.clone(),
+            output_dir: output_dir.clone(),
+            env,
+        };
+
+        (blog, source_dir, output_dir)
+    }
+
     #[test]
     fn copy_assets_also_copies_root_static_files() {
         let source_dir = unique_temp_dir("root-static-source");
@@ -786,6 +817,88 @@ date: 2024-01-01 00:00\n\
 
         assert!(output_dir.join("example/index.html").is_file());
         assert!(output_dir.join("example/example/image.png").is_file());
+
+        fs::remove_dir_all(&source_dir).unwrap();
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn render_groups_identical_tags_in_tags_overview() {
+        let (blog, source_dir, output_dir) = build_blog_from_posts(&[
+            (
+                "_posts/post-1.md",
+                "---\n\
+title: Post 1\n\
+date: 2024-01-01 00:00\n\
+tags:\n\
+  - 新东方\n\
+  - 新概念英语\n\
+---\n\
+\n\
+One\n",
+            ),
+            (
+                "_posts/post-2.md",
+                "---\n\
+title: Post 2\n\
+date: 2024-01-02 00:00\n\
+tags:\n\
+  - 新东方\n\
+  - 新概念英语\n\
+---\n\
+\n\
+Two\n",
+            ),
+            (
+                "_posts/hidden-only.md",
+                "---\n\
+title: Hidden\n\
+date: 2024-01-03 00:00\n\
+is_hidden: true\n\
+tags:\n\
+  - 隐藏标签\n\
+---\n\
+\n\
+Hidden\n",
+            ),
+        ]);
+
+        blog.render().unwrap();
+
+        let html = fs::read_to_string(output_dir.join("tags/index.html")).unwrap();
+
+        assert!(html.contains("href=\"/tags/新东方/\""));
+        assert!(html.contains("href=\"/tags/新概念英语/\""));
+        assert!(html.contains(" & "));
+        assert!(html.contains("2 篇"));
+        assert!(!html.contains("隐藏标签"));
+
+        fs::remove_dir_all(&source_dir).unwrap();
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn render_categories_overview_remains_single_linked_items() {
+        let (blog, source_dir, output_dir) = build_blog_from_posts(&[(
+            "_posts/post-1.md",
+            "---\n\
+title: Post 1\n\
+date: 2024-01-01 00:00\n\
+categories:\n\
+  - 随笔\n\
+---\n\
+\n\
+One\n",
+        )]);
+
+        blog.render().unwrap();
+
+        let html = fs::read_to_string(output_dir.join("categories/index.html")).unwrap();
+
+        assert!(html.contains("href=\"/categories/随笔/\""));
+        assert!(html.contains(">随笔</a>"));
+        assert!(html.contains("1 篇"));
+        assert!(!html.contains("</a> & <a"));
 
         fs::remove_dir_all(&source_dir).unwrap();
         fs::remove_dir_all(&output_dir).unwrap();

@@ -197,6 +197,16 @@ a:focus-visible {
     line-height: 1.5;
 }
 
+.archive-links {
+    display: block;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.archive-links a {
+    font-weight: inherit;
+}
+
 #post-list .post-date,
 #archive-list .archive-count {
     color: #9b9b9b;
@@ -361,6 +371,10 @@ footer {
     }
 
     .listing-list li > a {
+        font-size: 0.98rem;
+    }
+
+    .archive-links {
         font-size: 0.98rem;
     }
 }

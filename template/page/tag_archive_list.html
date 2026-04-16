@@ -1,0 +1,24 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}{{ title ~ ' - ' ~ site.title }}{% endblock %}
+
+{% block content %}
+<main class="listing-page">
+    <section class="page-head">
+        <p class="page-eyebrow">归档</p>
+        <h1 class="page-title">{{ title }}</h1>
+    </section>
+    <ul id="archive-list" class="listing-list">
+        {% for item in items %}
+        <li>
+            <span class="archive-links">
+                {% for link in item.links %}
+                <a href="{{ link.href }}">{{ link.name }}</a>{% if not loop.last %} & {% endif %}
+                {% endfor %}
+            </span>
+            <span class="archive-count">{{ item.post_count }} 篇</span>
+        </li>
+        {% endfor %}
+    </ul>
+</main>
+{% endblock %}
