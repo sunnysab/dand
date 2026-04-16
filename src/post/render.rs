@@ -95,7 +95,11 @@ fn render_markdown_content(markdown_text: &str, latex: bool) -> String {
     }
     let parser = Parser::new_ext(markdown_text, options);
     let events = if latex {
-        render_events_with_latex(parser.into_offset_iter(), markdown_text, &extracted_math_blocks)
+        render_events_with_latex(
+            parser.into_offset_iter(),
+            markdown_text,
+            &extracted_math_blocks,
+        )
     } else {
         parser.collect()
     };
@@ -123,7 +127,7 @@ fn extract_line_display_math_blocks(markdown_text: &str) -> (String, Vec<(String
         if line.trim() == "$$" {
             if in_block {
                 let token = format!("ZZZDANDMATH{}ZZZ", blocks.len());
-                blocks.push((block_lines.join("\n"), true));
+                blocks.push((strip_blockquote_prefixes(&block_lines.join("\n")), true));
                 block_lines.clear();
                 output.push_str(&token);
                 output.push('\n');
@@ -164,12 +168,13 @@ fn extract_multiline_inline_math_blocks(
         if chars[index] == '$' && !is_escaped(&chars, index) {
             let display_mode = index + 1 < chars.len() && chars[index + 1] == '$';
             let delimiter_len = if display_mode { 2 } else { 1 };
-            if let Some(end) = find_matching_delimiter(&chars, index + delimiter_len, display_mode) {
+            if let Some(end) = find_matching_delimiter(&chars, index + delimiter_len, display_mode)
+            {
                 let content: String = chars[index + delimiter_len..end].iter().collect();
                 if !display_mode && content.contains('\n') {
                     let token = format!("ZZZDANDMATH{}ZZZ", base_index + blocks.len());
                     // Multiline `$...$` should also be treated as display mode to avoid parser ambiguity.
-                    blocks.push((content, true));
+                    blocks.push((strip_blockquote_prefixes(&content), true));
                     output.push_str(&token);
                 } else {
                     for ch in &chars[index..end + delimiter_len] {
@@ -201,30 +206,21 @@ fn render_events_with_latex<'a>(
             Event::Text(_) | Event::SoftBreak | Event::HardBreak => text_run.push((event, range)),
             Event::InlineMath(text) => {
                 rendered.extend(expand_display_math_placeholders(
-                    render_text_run_with_latex(
-                        std::mem::take(&mut text_run),
-                        markdown_text,
-                    ),
+                    render_text_run_with_latex(std::mem::take(&mut text_run), markdown_text),
                     extracted_math_blocks,
                 ));
                 push_math_event(&mut rendered, text.into_string(), false);
             }
             Event::DisplayMath(text) => {
                 rendered.extend(expand_display_math_placeholders(
-                    render_text_run_with_latex(
-                        std::mem::take(&mut text_run),
-                        markdown_text,
-                    ),
+                    render_text_run_with_latex(std::mem::take(&mut text_run), markdown_text),
                     extracted_math_blocks,
                 ));
                 push_math_event(&mut rendered, text.into_string(), true);
             }
             other => {
                 rendered.extend(expand_display_math_placeholders(
-                    render_text_run_with_latex(
-                        std::mem::take(&mut text_run),
-                        markdown_text,
-                    ),
+                    render_text_run_with_latex(std::mem::take(&mut text_run), markdown_text),
                     extracted_math_blocks,
                 ));
                 rendered.push(other);
@@ -264,11 +260,15 @@ fn expand_display_math_placeholders<'a>(
 
                     let suffix = &remaining[start..];
                     let Some(rest) = suffix.strip_prefix("ZZZDANDMATH") else {
-                        expanded.push(Event::Text(CowStr::Boxed(suffix.to_string().into_boxed_str())));
+                        expanded.push(Event::Text(CowStr::Boxed(
+                            suffix.to_string().into_boxed_str(),
+                        )));
                         break;
                     };
                     let Some(end) = rest.find("ZZZ") else {
-                        expanded.push(Event::Text(CowStr::Boxed(suffix.to_string().into_boxed_str())));
+                        expanded.push(Event::Text(CowStr::Boxed(
+                            suffix.to_string().into_boxed_str(),
+                        )));
                         break;
                     };
                     let index_text = &rest[..end];
@@ -278,11 +278,14 @@ fn expand_display_math_placeholders<'a>(
                         if let Some((content, display_mode)) = extracted_math_blocks.get(index) {
                             push_math_event(&mut expanded, content.clone(), *display_mode);
                         } else {
-                            expanded
-                                .push(Event::Text(CowStr::Boxed(marker.to_string().into_boxed_str())));
+                            expanded.push(Event::Text(CowStr::Boxed(
+                                marker.to_string().into_boxed_str(),
+                            )));
                         }
                     } else {
-                        expanded.push(Event::Text(CowStr::Boxed(marker.to_string().into_boxed_str())));
+                        expanded.push(Event::Text(CowStr::Boxed(
+                            marker.to_string().into_boxed_str(),
+                        )));
                     }
 
                     remaining = suffix[consumed..].to_string();
@@ -473,6 +476,21 @@ fn find_matching_delimiter(chars: &[char], mut index: usize, display_mode: bool)
         index += 1;
     }
     None
+}
+
+fn strip_blockquote_prefixes(content: &str) -> String {
+    content
+        .split('\n')
+        .map(|line| {
+            let trimmed = line.trim_start_matches(' ');
+            if let Some(rest) = trimmed.strip_prefix('>') {
+                rest.strip_prefix(' ').unwrap_or(rest).to_string()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn escape_html(input: &str) -> String {
