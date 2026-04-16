@@ -330,8 +330,7 @@ fn render_category_overview(
     parameters.insert("title", title);
     parameters.insert("items", &items);
 
-    let html = template()
-        .render("page/category_archive_list.html", &parameters)?;
+    let html = template().render("page/category_archive_list.html", &parameters)?;
     Ok(html)
 }
 

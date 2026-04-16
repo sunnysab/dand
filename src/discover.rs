@@ -159,9 +159,7 @@ impl WalkDirectory for PostWalker {
         // Improve readability by always using '/'
         let rp = rp.replace('\\', "/");
 
-        rp.strip_prefix("_posts/")
-            .unwrap_or(&rp)
-            .to_string()
+        rp.strip_prefix("_posts/").unwrap_or(&rp).to_string()
     }
 
     /// Read the metadata of a markdown file, returns a `PostReference` structure.

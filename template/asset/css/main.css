@@ -278,7 +278,7 @@ a:focus-visible {
     font-weight: inherit;
 }
 
-#post-list .post-date,
+.listing-list .post-date,
 #archive-list .archive-count {
     color: #9b9b9b;
     font-size: 80%;

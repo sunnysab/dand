@@ -55,7 +55,11 @@ fn push_token(slug: &mut String, prev_separator: &mut bool, token: &str) {
 fn display_name_score(name: &str) -> i32 {
     let has_upper = name.chars().any(|ch| ch.is_uppercase());
     let has_lower = name.chars().any(|ch| ch.is_lowercase());
-    let starts_upper = name.chars().next().map(|ch| ch.is_uppercase()).unwrap_or(false);
+    let starts_upper = name
+        .chars()
+        .next()
+        .map(|ch| ch.is_uppercase())
+        .unwrap_or(false);
 
     let mut score = 0;
     if has_upper && has_lower {
