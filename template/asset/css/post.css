@@ -1,9 +1,9 @@
 
 .post-page {
-    --reader-max-width: 46rem;
-    --reader-font-size: 1.125rem;
-    --reader-line-height: 1.85;
-    --reader-paragraph-gap: 0.8em;
+    --reader-max-width: 47rem;
+    --reader-font-size: 1rem;
+    --reader-line-height: 1.55;
+    --reader-paragraph-gap: 0.6em;
     --reader-font-family: serif;
     width: min(100%, var(--reader-max-width));
     max-width: var(--reader-max-width);

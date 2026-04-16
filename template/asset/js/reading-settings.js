@@ -22,10 +22,10 @@ function initReadingSettings() {
 
     const storageKey = "dand-reading-settings";
     const defaults = {
-        fontSize: 18,
-        pageWidth: 46,
-        lineHeight: 185,
-        paragraphGap: 80,
+        fontSize: 16,
+        pageWidth: 47,
+        lineHeight: 155,
+        paragraphGap: 60,
         useSans: false,
         justify: true
     };

@@ -934,7 +934,7 @@ Second paragraph.\n",
 
     let post_css = fs::read_to_string(output_dir.join("asset/css/post.css")).unwrap();
 
-    assert!(post_css.contains("--reader-paragraph-gap: 0.8em;"));
+    assert!(post_css.contains("--reader-paragraph-gap: 0.6em;"));
     assert!(post_css.contains(".post-content p {\n    margin: var(--reader-paragraph-gap) 0;"));
 
     fs::remove_dir_all(&source_dir).unwrap();
@@ -1094,6 +1094,9 @@ Example\n",
     let reading_settings_js =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/js/reading-settings.js"))
             .unwrap();
+    let post_css =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/css/post.css"))
+            .unwrap();
     assert!(post_html.contains("<body class=\"page-shell page-shell-post\">"));
     assert!(post_html.contains("reading-settings-toggle"));
     assert!(post_html.contains("reading-settings-panel"));
@@ -1103,9 +1106,22 @@ Example\n",
     assert!(post_html.contains("data-reading-line-height"));
     assert!(post_html.contains("data-reading-paragraph-gap"));
     assert!(post_html.contains("data-reading-justify checked"));
+    assert!(post_html.contains("data-reading-font-size"));
+    assert!(post_html.contains("value=\"16\" data-reading-font-size"));
+    assert!(post_html.contains("value=\"47\" data-reading-page-width"));
+    assert!(post_html.contains("value=\"155\" data-reading-line-height"));
+    assert!(post_html.contains("value=\"60\" data-reading-paragraph-gap"));
+    assert!(reading_settings_js.contains("fontSize: 16"));
+    assert!(reading_settings_js.contains("pageWidth: 47"));
+    assert!(reading_settings_js.contains("lineHeight: 155"));
+    assert!(reading_settings_js.contains("paragraphGap: 60"));
     assert!(reading_settings_js.contains("paragraphGap"));
     assert!(reading_settings_js.contains("[data-reading-paragraph-gap]"));
     assert!(reading_settings_js.contains("root.style.setProperty(\"--reader-paragraph-gap\""));
+    assert!(post_css.contains("--reader-max-width: 47rem;"));
+    assert!(post_css.contains("--reader-font-size: 1rem;"));
+    assert!(post_css.contains("--reader-line-height: 1.55;"));
+    assert!(post_css.contains("--reader-paragraph-gap: 0.6em;"));
 
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
     assert!(!index_html.contains("reading-settings-toggle"));
