@@ -146,9 +146,12 @@ impl LoadedPost {
         let is_draft = front_matter
             .is_draft
             .unwrap_or(reference.is_under_drafts_dir());
+        let is_hidden = front_matter
+            .is_hidden
+            .unwrap_or(reference.should_hide_from_index());
         let flag = PostFlag::new()
             .with_draft_flag(is_draft)
-            .with_hidden_flag(front_matter.is_hidden.unwrap_or(false))
+            .with_hidden_flag(is_hidden)
             .with_latex_enabled_flag(front_matter.latex.unwrap_or(false));
         let metadata = Metadata {
             title: front_matter.title,

@@ -1240,3 +1240,73 @@ Older\n",
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
 }
+
+#[test]
+fn build_excludes_auxiliary_source_pages_from_homepage() {
+    let source_dir = unique_temp_dir("aux-pages-source");
+    let output_dir = unique_temp_dir("aux-pages-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/hello.md"),
+        "---\n\
+title: Hello\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Hello\n",
+    );
+    write_file(
+        &source_dir.join("categories/index.md"),
+        "---\n\
+title: categories\n\
+date: 2024-01-02 00:00\n\
+---\n\
+\n\
+categories\n",
+    );
+    write_file(
+        &source_dir.join("tags/index.md"),
+        "---\n\
+title: tags\n\
+date: 2024-01-03 00:00\n\
+---\n\
+\n\
+tags\n",
+    );
+    write_file(
+        &source_dir.join("404/index.md"),
+        "---\n\
+title: 找不到页面\n\
+date: 2024-01-04 00:00\n\
+---\n\
+\n\
+404\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
+    assert!(index_html.contains(">Hello<"));
+    assert!(!index_html.contains(">categories<"));
+    assert!(!index_html.contains(">tags<"));
+    assert!(!index_html.contains(">找不到页面<"));
+
+    assert!(output_dir.join("404/index.html").is_file());
+    assert!(output_dir.join("categories/index.html").is_file());
+    assert!(output_dir.join("tags/index.html").is_file());
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}

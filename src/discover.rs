@@ -76,10 +76,20 @@ pub struct PostReference {
 }
 
 impl PostReference {
+    pub fn is_under_posts_dir(&self) -> bool {
+        self.full_path
+            .components()
+            .any(|component| component.as_os_str() == "_posts")
+    }
+
     pub fn is_under_drafts_dir(&self) -> bool {
         self.full_path
             .components()
             .any(|component| component.as_os_str() == "_drafts")
+    }
+
+    pub fn should_hide_from_index(&self) -> bool {
+        !self.is_under_posts_dir() && !self.is_under_drafts_dir()
     }
 }
 
