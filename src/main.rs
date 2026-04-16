@@ -19,6 +19,7 @@ use crate::post::PostRenderer;
 use crate::render::Render;
 use crate::site::SiteConf;
 
+mod build;
 mod datetime;
 mod discover;
 mod env;
@@ -176,8 +177,9 @@ impl Blog {
         let tags_overview = TagOverviewRenderer::new(&self.site, &self.env).html()?;
         let tags_index = self.output_dir.join("tags").join("index.html");
         if let Some(parent) = tags_index.parent() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("failed to create tags directory: {}", parent.display()))?;
+            std::fs::create_dir_all(parent).with_context(|| {
+                format!("failed to create tags directory: {}", parent.display())
+            })?;
         }
         std::fs::write(&tags_index, tags_overview)
             .with_context(|| format!("failed to write tags overview: {}", tags_index.display()))?;
@@ -186,7 +188,10 @@ impl Blog {
         let categories_index = self.output_dir.join("categories").join("index.html");
         if let Some(parent) = categories_index.parent() {
             std::fs::create_dir_all(parent).with_context(|| {
-                format!("failed to create categories directory: {}", parent.display())
+                format!(
+                    "failed to create categories directory: {}",
+                    parent.display()
+                )
             })?;
         }
         std::fs::write(&categories_index, categories_overview).with_context(|| {
@@ -234,7 +239,10 @@ fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
 
 fn prepare_output_dir(source_dir: &Path, output_dir: &Path) -> Result<()> {
     let source_dir = source_dir.canonicalize().with_context(|| {
-        format!("failed to canonicalize source directory: {}", source_dir.display())
+        format!(
+            "failed to canonicalize source directory: {}",
+            source_dir.display()
+        )
     })?;
     let output_dir_existing = output_dir.exists();
     let output_dir_canonical = if output_dir_existing {
@@ -258,7 +266,10 @@ fn prepare_output_dir(source_dir: &Path, output_dir: &Path) -> Result<()> {
         })?;
     }
     std::fs::create_dir_all(output_dir).with_context(|| {
-        format!("failed to create output directory: {}", output_dir.display())
+        format!(
+            "failed to create output directory: {}",
+            output_dir.display()
+        )
     })?;
     Ok(())
 }
@@ -271,7 +282,8 @@ fn copy_root_static_files(source_dir: &Path, output_dir: &Path) -> Result<()> {
             continue;
         }
 
-        if path.extension() == Some("md".as_ref()) || path.file_name() == Some("dand.toml".as_ref()) {
+        if path.extension() == Some("md".as_ref()) || path.file_name() == Some("dand.toml".as_ref())
+        {
             continue;
         }
 
@@ -303,8 +315,10 @@ fn main() -> anyhow::Result<()> {
             output_dir,
             config,
         } => {
-            let blog = build_blog(&source_dir, &output_dir, config)?;
-            blog.render()?;
+            let config_path = resolve_config_path(&source_dir, config)?;
+            let template_dir = resolve_template_dir(&source_dir)?;
+            let report = build::build_site(&source_dir, &output_dir, &config_path, &template_dir)?;
+            report.print_summary();
         }
         Commands::Serve {
             source_dir,
@@ -369,12 +383,10 @@ fn run_preview(
     config: Option<PathBuf>,
 ) -> Result<()> {
     let config_path = resolve_config_path(&source_dir, config)?;
-    let blog = BlogBuilder::new()
-        .src_dir(&source_dir)?
-        .output_dir(&output_dir)?
-        .conf(&config_path)?
-        .build()?;
-    blog.render()?;
+    let template_dir = resolve_template_dir(&source_dir)?;
+
+    let report = build::build_site(&source_dir, &output_dir, &config_path, &template_dir)?;
+    report.print_summary();
 
     let address = format!("127.0.0.1:{port}");
     if !watch {
@@ -411,10 +423,8 @@ fn run_preview(
             .join(", ");
         eprintln!("Change detected: {changed_list}");
         eprintln!("Rebuilding...");
-        match build_blog(&source_dir, &output_dir, Some(config_path.clone()))
-            .and_then(|blog| blog.render())
-        {
-            Ok(()) => eprintln!("Rebuild complete."),
+        match build::build_site(&source_dir, &output_dir, &config_path, &template_dir) {
+            Ok(report) => report.print_summary(),
             Err(error) => eprintln!("Rebuild failed: {error:#}"),
         }
     }
@@ -427,6 +437,26 @@ fn build_blog(source_dir: &Path, output_dir: &Path, config: Option<PathBuf>) -> 
         .output_dir(output_dir)?
         .conf(&conf_path)?
         .build()
+}
+
+fn resolve_template_dir(source_dir: &Path) -> Result<PathBuf> {
+    let mut candidates = vec![source_dir.join("template")];
+
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join("template"));
+    }
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            candidates.push(exe_dir.join("template"));
+        }
+    }
+
+    if let Some(found) = candidates.into_iter().find(|p| p.is_dir()) {
+        return Ok(found);
+    }
+
+    bail!("could not find template directory")
 }
 
 fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
@@ -463,7 +493,8 @@ fn resolve_config_path(source_dir: &Path, config: Option<PathBuf>) -> Result<Pat
 }
 
 fn bind_server(address: &str) -> Result<TcpListener> {
-    TcpListener::bind(address).with_context(|| format!("failed to bind preview server to {}", address))
+    TcpListener::bind(address)
+        .with_context(|| format!("failed to bind preview server to {}", address))
 }
 
 fn serve(root_dir: &Path, address: &str) -> Result<()> {
@@ -500,9 +531,8 @@ fn serve_connection(mut stream: TcpStream, root_dir: &Path) -> Result<()> {
 fn build_not_found_response(root_dir: &Path) -> Result<Vec<u8>> {
     let not_found_page = root_dir.join("404").join("index.html");
     if not_found_page.is_file() {
-        let body = std::fs::read(&not_found_page).with_context(|| {
-            format!("failed to read 404 page: {}", not_found_page.display())
-        })?;
+        let body = std::fs::read(&not_found_page)
+            .with_context(|| format!("failed to read 404 page: {}", not_found_page.display()))?;
         return Ok(build_response(
             "404 Not Found",
             content_type(&not_found_page),
@@ -522,7 +552,9 @@ fn read_request_path(stream: &TcpStream) -> Result<String> {
     let mut reader = BufReader::new(stream);
     reader.read_line(&mut first_line)?;
     let mut parts = first_line.split_whitespace();
-    let _method = parts.next().ok_or_else(|| anyhow!("missing request method"))?;
+    let _method = parts
+        .next()
+        .ok_or_else(|| anyhow!("missing request method"))?;
     let path = parts
         .next()
         .ok_or_else(|| anyhow!("missing request path"))?
@@ -601,7 +633,11 @@ Connection: close\r\n\
 }
 
 fn content_type(path: &Path) -> &'static str {
-    match path.extension().and_then(|ext| ext.to_str()).unwrap_or_default() {
+    match path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or_default()
+    {
         "html" => "text/html; charset=utf-8",
         "css" => "text/css; charset=utf-8",
         "js" => "application/javascript; charset=utf-8",
@@ -619,17 +655,26 @@ fn content_type(path: &Path) -> &'static str {
 fn watch_paths(source_dir: &Path, config_path: &Path) -> Result<Vec<PathBuf>> {
     let mut roots = BTreeSet::new();
     roots.insert(source_dir.canonicalize().with_context(|| {
-        format!("failed to canonicalize source directory: {}", source_dir.display())
+        format!(
+            "failed to canonicalize source directory: {}",
+            source_dir.display()
+        )
     })?);
     roots.insert(config_path.canonicalize().with_context(|| {
-        format!("failed to canonicalize config path: {}", config_path.display())
+        format!(
+            "failed to canonicalize config path: {}",
+            config_path.display()
+        )
     })?);
 
     if let Ok(cwd) = std::env::current_dir() {
         let template_dir = cwd.join("template");
         if template_dir.exists() {
             roots.insert(template_dir.canonicalize().with_context(|| {
-                format!("failed to canonicalize template directory: {}", template_dir.display())
+                format!(
+                    "failed to canonicalize template directory: {}",
+                    template_dir.display()
+                )
             })?);
         }
     }
@@ -797,7 +842,9 @@ date: 2024-01-01 00:00\n\
         );
         write_file(&source_dir.join("_posts/example/image.png"), "fake-image");
 
-        let reference = PostWalker::from(source_dir.clone()).open(post_path).unwrap();
+        let reference = PostWalker::from(source_dir.clone())
+            .open(post_path)
+            .unwrap();
         let mut env = Environment::new();
         post::load(reference).unwrap().build(&mut env);
 
@@ -968,7 +1015,10 @@ One\n",
     #[test]
     fn serve_connection_uses_site_404_page_when_present() {
         let output_dir = unique_temp_dir("serve-404-output");
-        write_file(&output_dir.join("404/index.html"), "<h1>Custom Not Found</h1>");
+        write_file(
+            &output_dir.join("404/index.html"),
+            "<h1>Custom Not Found</h1>",
+        );
 
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
@@ -981,7 +1031,9 @@ One\n",
 
         let mut client = TcpStream::connect(addr).unwrap();
         client
-            .write_all(b"GET /missing-page HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+            .write_all(
+                b"GET /missing-page HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+            )
             .unwrap();
 
         let mut response = String::new();
@@ -1056,5 +1108,4 @@ One\n",
             _ => panic!("expected serve command"),
         }
     }
-
 }

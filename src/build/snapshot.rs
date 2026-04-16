@@ -41,17 +41,22 @@ pub struct CurrentSnapshot {
 impl CurrentSnapshot {
     /// Build a path -> mtime map for quick lookup.
     pub fn as_mtime_map(&self) -> HashMap<PathBuf, u64> {
-        self.files.iter().map(|f| (f.path.clone(), f.mtime)).collect()
+        self.files
+            .iter()
+            .map(|f| (f.path.clone(), f.mtime))
+            .collect()
     }
 }
 
 pub fn mtime_millis(time: SystemTime) -> u64 {
-    time.duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+    time.duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 fn file_mtime(path: &Path) -> Result<u64> {
-    let meta = std::fs::metadata(path)
-        .with_context(|| format!("failed to stat: {}", path.display()))?;
+    let meta =
+        std::fs::metadata(path).with_context(|| format!("failed to stat: {}", path.display()))?;
     let modified = meta
         .modified()
         .with_context(|| format!("mtime unavailable: {}", path.display()))?;
@@ -62,8 +67,8 @@ fn walk_dir_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
     if !dir.is_dir() {
         return Ok(());
     }
-    for entry in std::fs::read_dir(dir)
-        .with_context(|| format!("failed to read dir: {}", dir.display()))?
+    for entry in
+        std::fs::read_dir(dir).with_context(|| format!("failed to read dir: {}", dir.display()))?
     {
         let entry = entry?;
         let path = entry.path();

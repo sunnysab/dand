@@ -114,7 +114,11 @@ pub fn diff_snapshots(old_state: &BuildState, current: &CurrentSnapshot) -> Buil
         }
     }
 
-    BuildDiff { added, modified, removed }
+    BuildDiff {
+        added,
+        modified,
+        removed,
+    }
 }
 
 fn infer_removed_kind(path: &Path, cached_posts: &HashMap<String, CachedPost>) -> RemovedKind {
@@ -129,11 +133,15 @@ fn infer_removed_kind(path: &Path, cached_posts: &HashMap<String, CachedPost>) -
 
     // Determine if this was a resource file by checking whether its grandparent directory
     // contains a .md file named after the parent directory.
-    if let (Some(parent), Some(grandparent)) = (path.parent(), path.parent().and_then(|p| p.parent())) {
+    if let (Some(parent), Some(grandparent)) =
+        (path.parent(), path.parent().and_then(|p| p.parent()))
+    {
         if let Some(parent_name) = parent.file_name() {
             let sibling_md = grandparent.join(format!("{}.md", parent_name.to_string_lossy()));
             if sibling_md.is_file() {
-                return RemovedKind::PostResource { post_source: sibling_md };
+                return RemovedKind::PostResource {
+                    post_source: sibling_md,
+                };
             }
         }
     }
@@ -156,11 +164,7 @@ fn infer_removed_kind(path: &Path, cached_posts: &HashMap<String, CachedPost>) -
 
 /// Translate a file-level diff into the set of output operations to perform.
 /// Requires the already-built `Environment` so that current tag/category slugs are available.
-pub fn plan_dirty_outputs(
-    diff: &BuildDiff,
-    old_state: &BuildState,
-    env: &Environment,
-) -> DirtySet {
+pub fn plan_dirty_outputs(diff: &BuildDiff, old_state: &BuildState, env: &Environment) -> DirtySet {
     let mut dirty = DirtySet::new();
     let cached_posts = &old_state.cached_posts;
 
@@ -346,7 +350,10 @@ fn apply_template_invalidation(
         return;
     }
 
-    let name = template_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    let name = template_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
     match name {
         "post.html" => {
             for post in env.get_posts() {
@@ -377,7 +384,13 @@ fn apply_template_invalidation(
 }
 
 fn post_tag_slugs(post: &SharedPost) -> Vec<String> {
-    post.0.borrow().metadata.tags.iter().map(|t| t.slug()).collect()
+    post.0
+        .borrow()
+        .metadata
+        .tags
+        .iter()
+        .map(|t| t.slug())
+        .collect()
 }
 
 fn post_category_slugs(post: &SharedPost) -> Vec<String> {
