@@ -18,6 +18,7 @@ pub fn execute_dirty_tasks(
     dirty: &DirtySet,
     env: &Environment,
     site: &SiteConf,
+    source_dir: &Path,
     output_dir: &Path,
     template_dir: &Path,
 ) -> Result<BuildReport> {
@@ -27,9 +28,8 @@ pub fn execute_dirty_tasks(
     for (relative_name, _has_resource_dir) in &dirty.delete_post_outputs {
         let post_dir = output_dir.join(relative_name);
         if post_dir.exists() {
-            std::fs::remove_dir_all(&post_dir).with_context(|| {
-                format!("failed to delete post output: {}", post_dir.display())
-            })?;
+            std::fs::remove_dir_all(&post_dir)
+                .with_context(|| format!("failed to delete post output: {}", post_dir.display()))?;
             report.deleted_posts += 1;
         }
     }
@@ -45,9 +45,8 @@ pub fn execute_dirty_tasks(
 
     // 3. Copy template assets (replaces the whole asset directory).
     if dirty.copy_template_assets {
-        let src_asset_dir = template_dir.join("asset");
         let dst_asset_dir = output_dir.join("asset");
-        copy_dir(&src_asset_dir, &dst_asset_dir)?;
+        copy_template_assets(source_dir, template_dir, &dst_asset_dir)?;
         report.copied_assets = true;
     }
 
@@ -55,9 +54,8 @@ pub fn execute_dirty_tasks(
     for src_path in &dirty.copy_root_static {
         if let Some(file_name) = src_path.file_name() {
             let dst_path = output_dir.join(file_name);
-            std::fs::copy(src_path, &dst_path).with_context(|| {
-                format!("failed to copy static file: {}", src_path.display())
-            })?;
+            std::fs::copy(src_path, &dst_path)
+                .with_context(|| format!("failed to copy static file: {}", src_path.display()))?;
             report.copied_root_statics += 1;
         }
     }
@@ -66,19 +64,20 @@ pub fn execute_dirty_tasks(
     for post in env.get_posts() {
         let (source_path, relative_name) = {
             let p = post.0.borrow();
-            (p.reference.full_path.clone(), p.reference.relative_name.clone())
+            (
+                p.reference.full_path.clone(),
+                p.reference.relative_name.clone(),
+            )
         };
 
         if dirty.render_posts.contains(&source_path) {
             let renderer = PostRenderer::new(site, post);
             let html = renderer.html()?;
             let post_dir = output_dir.join(&relative_name);
-            std::fs::create_dir_all(&post_dir).with_context(|| {
-                format!("failed to create post dir: {}", post_dir.display())
-            })?;
-            std::fs::write(post_dir.join("index.html"), html).with_context(|| {
-                format!("failed to write post HTML in: {}", post_dir.display())
-            })?;
+            std::fs::create_dir_all(&post_dir)
+                .with_context(|| format!("failed to create post dir: {}", post_dir.display()))?;
+            std::fs::write(post_dir.join("index.html"), html)
+                .with_context(|| format!("failed to write post HTML in: {}", post_dir.display()))?;
             report.rendered_posts += 1;
         }
 
@@ -171,9 +170,8 @@ pub fn render_full(
     };
 
     // Copy template assets.
-    let src_asset_dir = template_dir.join("asset");
     let dst_asset_dir = output_dir.join("asset");
-    copy_dir(&src_asset_dir, &dst_asset_dir)?;
+    copy_template_assets(source_dir, template_dir, &dst_asset_dir)?;
     report.copied_assets = true;
 
     // Copy root static files.
@@ -188,7 +186,10 @@ pub fn render_full(
     for post in env.get_posts() {
         let (source_path, relative_name) = {
             let p = post.0.borrow();
-            (p.reference.full_path.clone(), p.reference.relative_name.clone())
+            (
+                p.reference.full_path.clone(),
+                p.reference.relative_name.clone(),
+            )
         };
         let renderer = PostRenderer::new(site, post);
         let html = renderer.html()?;
@@ -256,6 +257,70 @@ pub fn copy_post_resources_for(
         copy_dir(&resource_dir, &dst_dir)?;
     }
     Ok(())
+}
+
+fn copy_template_assets(
+    source_dir: &Path,
+    template_dir: &Path,
+    dst_asset_dir: &Path,
+) -> Result<()> {
+    if dst_asset_dir.exists() {
+        std::fs::remove_dir_all(dst_asset_dir).with_context(|| {
+            format!(
+                "failed to reset asset output directory: {}",
+                dst_asset_dir.display()
+            )
+        })?;
+    }
+
+    for asset_dir in template_asset_dirs(source_dir, template_dir)? {
+        copy_dir(&asset_dir, dst_asset_dir)?;
+    }
+
+    Ok(())
+}
+
+fn template_asset_dirs(source_dir: &Path, template_dir: &Path) -> Result<Vec<std::path::PathBuf>> {
+    let mut dirs = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+
+    for candidate in asset_dir_candidates(source_dir, template_dir) {
+        if !candidate.is_dir() {
+            continue;
+        }
+
+        let canonical = candidate.canonicalize().with_context(|| {
+            format!(
+                "failed to canonicalize asset directory: {}",
+                candidate.display()
+            )
+        })?;
+
+        if seen.insert(canonical) {
+            dirs.push(candidate);
+        }
+    }
+
+    Ok(dirs)
+}
+
+fn asset_dir_candidates(source_dir: &Path, template_dir: &Path) -> Vec<std::path::PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join("template").join("asset"));
+    }
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            candidates.push(exe_dir.join("template").join("asset"));
+        }
+    }
+
+    candidates.push(template_dir.join("asset"));
+    candidates.push(source_dir.join("template").join("asset"));
+
+    candidates
 }
 
 /// Recursively copy `src` directory into `dst`.

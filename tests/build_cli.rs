@@ -1093,12 +1093,14 @@ Example\n",
     assert!(status.success());
 
     let post_html = fs::read_to_string(output_dir.join("example/index.html")).unwrap();
-    let reading_settings_js =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/js/reading-settings.js"))
-            .unwrap();
-    let post_css =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/css/post.css"))
-            .unwrap();
+    let reading_settings_js = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/js/reading-settings.js"),
+    )
+    .unwrap();
+    let post_css = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/css/post.css"),
+    )
+    .unwrap();
     assert!(post_html.contains("<body class=\"page-shell page-shell-post\">"));
     assert!(post_html.contains("reading-settings-toggle"));
     assert!(post_html.contains("reading-settings-panel"));
@@ -1128,6 +1130,50 @@ Example\n",
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
     assert!(!index_html.contains("reading-settings-toggle"));
     assert!(!index_html.contains("page-shell-post"));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_keeps_builtin_post_assets_when_source_overrides_main_css() {
+    let source_dir = unique_temp_dir("builtin-post-assets-source");
+    let output_dir = unique_temp_dir("builtin-post-assets-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/blog/\"\ndescription = \"test\"\n",
+    );
+    write_file(
+        &source_dir.join("template/asset/css/main.css"),
+        "body { background: pink; }\n",
+    );
+    write_file(
+        &source_dir.join("_posts/example.md"),
+        "---\n\
+title: Example\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Example\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    assert_eq!(
+        fs::read_to_string(output_dir.join("asset/css/main.css")).unwrap(),
+        "body { background: pink; }\n"
+    );
+    assert!(output_dir.join("asset/css/post.css").is_file());
+    assert!(output_dir.join("asset/js/reading-settings.js").is_file());
+    assert!(output_dir.join("asset/js/display.js").is_file());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();

@@ -32,13 +32,22 @@ pub fn build_site(
 ) -> Result<BuildReport> {
     validate_dirs(source_dir, output_dir)?;
 
-    let old_state = output_dir.exists().then(|| read_state(output_dir)).flatten();
+    let old_state = output_dir
+        .exists()
+        .then(|| read_state(output_dir))
+        .flatten();
 
     if old_state.is_none() {
         return full_build(source_dir, output_dir, config_path, template_dir);
     }
 
-    incremental_build(source_dir, output_dir, config_path, template_dir, old_state.unwrap())
+    incremental_build(
+        source_dir,
+        output_dir,
+        config_path,
+        template_dir,
+        old_state.unwrap(),
+    )
 }
 
 fn full_build(
@@ -81,7 +90,8 @@ fn incremental_build(
 
     let dirty = plan_dirty_outputs(&diff, &old_state, &env);
 
-    let mut report = execute_dirty_tasks(&dirty, &env, &site, output_dir, template_dir)?;
+    let mut report =
+        execute_dirty_tasks(&dirty, &env, &site, source_dir, output_dir, template_dir)?;
     report.is_incremental = true;
 
     let new_state = capture_state(&snapshot, &env);
@@ -141,7 +151,11 @@ fn capture_state(snapshot: &CurrentSnapshot, env: &Environment) -> BuildState {
             .iter()
             .map(|p| p.0.borrow().reference.relative_name.clone())
             .collect(),
-        rendered_tags: env.get_tags().iter().map(|(slug, _)| slug.clone()).collect(),
+        rendered_tags: env
+            .get_tags()
+            .iter()
+            .map(|(slug, _)| slug.clone())
+            .collect(),
         rendered_categories: env
             .get_categories()
             .iter()
@@ -166,24 +180,33 @@ fn reset_output_dir(output_dir: &Path) -> Result<()> {
         })?;
     }
     std::fs::create_dir_all(output_dir).with_context(|| {
-        format!("failed to create output directory: {}", output_dir.display())
+        format!(
+            "failed to create output directory: {}",
+            output_dir.display()
+        )
     })?;
     Ok(())
 }
 
 /// Verify that source and output directories are not the same path.
 fn validate_dirs(source_dir: &Path, output_dir: &Path) -> Result<()> {
-    let source_canonical = source_dir
-        .canonicalize()
-        .with_context(|| format!("failed to resolve source directory: {}", source_dir.display()))?;
+    let source_canonical = source_dir.canonicalize().with_context(|| {
+        format!(
+            "failed to resolve source directory: {}",
+            source_dir.display()
+        )
+    })?;
 
     if !output_dir.exists() {
         return Ok(());
     }
 
-    let output_canonical = output_dir
-        .canonicalize()
-        .with_context(|| format!("failed to resolve output directory: {}", output_dir.display()))?;
+    let output_canonical = output_dir.canonicalize().with_context(|| {
+        format!(
+            "failed to resolve output directory: {}",
+            output_dir.display()
+        )
+    })?;
 
     if source_canonical == output_canonical {
         bail!("output directory must be different from source directory");
