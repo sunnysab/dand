@@ -6,7 +6,9 @@
 <main class="listing-page">
     <section class="page-head">
         <p class="page-eyebrow">{{ page_eyebrow }}</p>
+        {% if document_title != site.title %}
         <h1 class="page-title">{{ page_title }}</h1>
+        {% endif %}
         {% if overview_href and overview_title %}
         <p class="page-overview"><a href="{{ overview_href }}">{{ overview_title }}</a></p>
         {% endif %}

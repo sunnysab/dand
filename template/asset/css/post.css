@@ -98,20 +98,26 @@
 
 .post-content h2,
 .post-content h3,
-.post-content h4 {
-    margin: 2.4em 0 0.7em;
+.post-content h4,
+.post-content h5,
+.post-content h6 {
+    margin: 1.9em 0 0.6em;
     line-height: 1.35;
 }
 
 .post-content ul,
 .post-content ol {
     margin: 1.1em 0;
-    padding-left: 1.5em;
+    padding-left: 2em;
 }
 
 .post-content p {
     margin: var(--reader-paragraph-gap) 0;
     text-indent: 0;
+}
+
+.post-content > p {
+    text-indent: 2em;
 }
 
 .post-content p,
@@ -150,7 +156,7 @@
 
 .post-content pre code {
     display: block;
-    padding: 0;
+    padding: 0 !important;
     background: transparent;
 }
 
@@ -377,15 +383,17 @@
 
     .post-content h2,
     .post-content h3,
-    .post-content h4 {
-        margin: 2em 0 0.62em;
+    .post-content h4,
+    .post-content h5,
+    .post-content h6 {
+        margin: 1.6em 0 0.55em;
         line-height: 1.3;
     }
 
     .post-content ul,
     .post-content ol {
         margin: 1em 0;
-        padding-left: 1.25em;
+        padding-left: 2em;
     }
 
     .post-content pre,
@@ -457,8 +465,10 @@
 
     .post-content h2,
     .post-content h3,
-    .post-content h4 {
-        margin-top: 1.85em;
+    .post-content h4,
+    .post-content h5,
+    .post-content h6 {
+        margin-top: 1.45em;
     }
 
     .post-content pre {
