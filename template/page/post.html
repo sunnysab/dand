@@ -105,13 +105,20 @@
                 displayMode;
 
             for (var i = 0; i < maths.length; i++) {
-                tex = maths[i].innerText || maths[i].textContent;
+                tex = (maths[i].innerText || maths[i].textContent || "").trim();
+                tex = tex
+                    .replace(/\\begin\{align\*\}/g, "\\begin{aligned}")
+                    .replace(/\\end\{align\*\}/g, "\\end{aligned}");
                 displayMode = maths[i].dataset.displayMode === "true";
                 // Add support for latex blocks.
-                katex.render(tex, maths[i], {
-                    'displayMode': displayMode,
-                    'throwOnError': false
-                });
+                try {
+                    katex.render(tex, maths[i], {
+                        'displayMode': displayMode,
+                        'throwOnError': false
+                    });
+                } catch (error) {
+                    console.warn("KaTeX render skipped:", error);
+                }
             }
         });
 
