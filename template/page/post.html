@@ -46,6 +46,7 @@
     <article class="post-content">
         {{ content }}
     </article>
+    <div id="--reading-ruler-ruler" class="--reading-ruler-ruler" aria-hidden="true"></div>
     <div class="reading-settings" data-reading-settings>
         <button class="reading-settings-toggle" type="button" aria-expanded="false" aria-controls="reading-settings-panel">
             <span class="reading-settings-toggle-icon" aria-hidden="true">
@@ -83,6 +84,10 @@
             <label class="reading-settings-check" for="reading-justify">
                 <input id="reading-justify" name="reading-justify" type="checkbox" data-reading-justify checked>
                 <span>正文两端对齐</span>
+            </label>
+            <label class="reading-settings-check" for="reading-rule">
+                <input id="reading-rule" name="reading-rule" type="checkbox" data-reading-rule checked>
+                <span>阅读尺</span>
             </label>
         </section>
     </div>

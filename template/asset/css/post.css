@@ -180,6 +180,25 @@
     background: rgba(0, 0, 0, 0.02);
 }
 
+.--reading-ruler-ruler {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-radius: 999px;
+    background-color: rgb(70, 130, 180);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 30;
+    transition: opacity 140ms ease, visibility 140ms ease;
+}
+
+.post-page[data-reader-rule="false"] .--reading-ruler-ruler {
+    opacity: 0;
+    visibility: hidden;
+}
+
 .post-content table {
     width: 100%;
     border-collapse: collapse;

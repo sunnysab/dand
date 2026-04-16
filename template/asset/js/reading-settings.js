@@ -15,8 +15,10 @@ function initReadingSettings() {
     const paragraphGapInput = shell.querySelector("[data-reading-paragraph-gap]");
     const useSansInput = shell.querySelector("[data-reading-use-sans]");
     const justifyInput = shell.querySelector("[data-reading-justify]");
+    const readingRuleInput = shell.querySelector("[data-reading-rule]");
+    const ruler = document.getElementById("--reading-ruler-ruler");
 
-    if (!toggle || !panel || !fontSizeInput || !pageWidthInput || !lineHeightInput || !paragraphGapInput || !useSansInput || !justifyInput) {
+    if (!toggle || !panel || !fontSizeInput || !pageWidthInput || !lineHeightInput || !paragraphGapInput || !useSansInput || !justifyInput || !readingRuleInput) {
         return;
     }
 
@@ -27,7 +29,8 @@ function initReadingSettings() {
         lineHeight: 155,
         paragraphGap: 60,
         useSans: false,
-        justify: true
+        justify: true,
+        readingRule: true
     };
 
     let saved = {};
@@ -43,8 +46,50 @@ function initReadingSettings() {
         lineHeight: Number.isFinite(saved.lineHeight) ? saved.lineHeight : defaults.lineHeight,
         paragraphGap: Number.isFinite(saved.paragraphGap) ? saved.paragraphGap : defaults.paragraphGap,
         useSans: typeof saved.useSans === "boolean" ? saved.useSans : defaults.useSans,
-        justify: typeof saved.justify === "boolean" ? saved.justify : defaults.justify
+        justify: typeof saved.justify === "boolean" ? saved.justify : defaults.justify,
+        readingRule: typeof saved.readingRule === "boolean" ? saved.readingRule : defaults.readingRule
     };
+
+    const rulerOpacity = 0.18;
+    let pointerInsideContent = false;
+    let lastPointerY = null;
+
+    function updateRulerVisibility() {
+        if (!ruler) {
+            return;
+        }
+        const shouldShow = state.readingRule && pointerInsideContent;
+        ruler.style.opacity = shouldShow ? String(rulerOpacity) : "0";
+        ruler.style.visibility = shouldShow ? "visible" : "hidden";
+    }
+
+    function updateRulerPosition(clientY) {
+        if (!ruler) {
+            return;
+        }
+
+        const rect = content.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) {
+            return;
+        }
+
+        const computed = window.getComputedStyle(content);
+        let lineHeight = parseFloat(computed.lineHeight);
+        if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
+            const fontSize = parseFloat(computed.fontSize) || 16;
+            lineHeight = fontSize * (state.lineHeight / 100);
+        }
+
+        const clampedY = Math.max(rect.top, Math.min(clientY, rect.bottom - 1));
+        const offset = clampedY - rect.top;
+        const lineIndex = Math.floor(offset / lineHeight);
+        const top = rect.top + lineIndex * lineHeight;
+
+        ruler.style.left = rect.left + "px";
+        ruler.style.top = top + "px";
+        ruler.style.width = rect.width + "px";
+        ruler.style.height = lineHeight + "px";
+    }
 
     function syncControls() {
         fontSizeInput.value = String(state.fontSize);
@@ -53,6 +98,7 @@ function initReadingSettings() {
         paragraphGapInput.value = String(state.paragraphGap);
         useSansInput.checked = state.useSans;
         justifyInput.checked = state.justify;
+        readingRuleInput.checked = state.readingRule;
     }
 
     function applySettings() {
@@ -62,6 +108,11 @@ function initReadingSettings() {
         root.style.setProperty("--reader-paragraph-gap", state.paragraphGap / 100 + "em");
         root.style.setProperty("--reader-font-family", state.useSans ? "sans-serif" : "serif");
         content.dataset.readerJustify = state.justify ? "true" : "false";
+        root.dataset.readerRule = state.readingRule ? "true" : "false";
+        if (pointerInsideContent && state.readingRule && lastPointerY !== null) {
+            updateRulerPosition(lastPointerY);
+        }
+        updateRulerVisibility();
     }
 
     function persistSettings() {
@@ -116,6 +167,51 @@ function initReadingSettings() {
         applySettings();
         persistSettings();
     });
+
+    readingRuleInput.addEventListener("change", function () {
+        state.readingRule = readingRuleInput.checked;
+        applySettings();
+        persistSettings();
+    });
+
+    if (ruler) {
+        content.addEventListener("mouseenter", function (event) {
+            pointerInsideContent = true;
+            lastPointerY = event.clientY;
+            if (state.readingRule) {
+                updateRulerPosition(event.clientY);
+            }
+            updateRulerVisibility();
+        });
+
+        content.addEventListener("mousemove", function (event) {
+            pointerInsideContent = true;
+            lastPointerY = event.clientY;
+            if (state.readingRule) {
+                updateRulerPosition(event.clientY);
+            }
+            updateRulerVisibility();
+        });
+
+        content.addEventListener("mouseleave", function () {
+            pointerInsideContent = false;
+            updateRulerVisibility();
+        });
+
+        window.addEventListener("scroll", function () {
+            if (!state.readingRule || !pointerInsideContent || lastPointerY === null) {
+                return;
+            }
+            updateRulerPosition(lastPointerY);
+        }, { passive: true });
+
+        window.addEventListener("resize", function () {
+            if (!state.readingRule || !pointerInsideContent || lastPointerY === null) {
+                return;
+            }
+            updateRulerPosition(lastPointerY);
+        });
+    }
 
     document.addEventListener("click", function (event) {
         if (panel.hidden) {
