@@ -11,7 +11,9 @@
     <section class="page-head{% if supports_year_grouping %} page-head-with-toggle{% endif %}">
         <div class="page-head-main">
         <p class="page-eyebrow">{{ page_eyebrow }}</p>
+        {% if not supports_year_grouping %}
         <h1 class="page-title">{{ page_title }}</h1>
+        {% endif %}
         {% if overview_href and overview_title %}
         <p class="page-overview"><a href="{{ overview_href }}">{{ overview_title }}</a></p>
         {% endif %}

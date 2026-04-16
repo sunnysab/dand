@@ -1166,7 +1166,7 @@ Example\n",
 
     let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
     assert!(index_html.contains("<main class=\"listing-page\""));
-    assert!(index_html.contains("<h1 class=\"page-title\">@sunnysab</h1>"));
+    assert!(!index_html.contains("<h1 class=\"page-title\">@sunnysab</h1>"));
     assert!(index_html.contains("<title>@sunnysab</title>"));
     assert!(!index_html.contains("<div class=\"nav-logo\"><h1"));
 
