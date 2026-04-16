@@ -1,17 +1,12 @@
 {% extends 'layout/base.html' %}
 
-{% block title %}{% if category %}{{ category ~ ' - ' ~ site.title }}{% else %}{{ site.title }}{% endif %}{% endblock %}
+{% block title %}{{ document_title }}{% endblock %}
 
 {% block content %}
 <main class="listing-page">
     <section class="page-head">
-        {% if category %}
-        <p class="page-eyebrow">分类</p>
-        <h1 class="page-title">{{ category }}</h1>
-        {% else %}
-        <p class="page-eyebrow">最近文章</p>
-        <h1 class="page-title">{{ site.title }}</h1>
-        {% endif %}
+        <p class="page-eyebrow">{{ page_eyebrow }}</p>
+        <h1 class="page-title">{{ page_title }}</h1>
         {% if overview_href and overview_title %}
         <p class="page-overview"><a href="{{ overview_href }}">{{ overview_title }}</a></p>
         {% endif %}

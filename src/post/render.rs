@@ -81,7 +81,10 @@ impl<'a> PostRenderer<'a> {
 }
 
 fn render_markdown_content(markdown_text: &str, latex: bool) -> String {
-    let options = Options::all();
+    let mut options = Options::all();
+    if !latex {
+        options.remove(Options::ENABLE_MATH);
+    }
     let parser = Parser::new_ext(markdown_text, options);
     let events = if latex {
         render_events_with_latex(parser.into_offset_iter(), markdown_text)
@@ -104,6 +107,20 @@ fn render_events_with_latex<'a>(
     for (event, range) in parser {
         match event {
             Event::Text(_) | Event::SoftBreak | Event::HardBreak => text_run.push((event, range)),
+            Event::InlineMath(text) => {
+                rendered.extend(render_text_run_with_latex(
+                    std::mem::take(&mut text_run),
+                    markdown_text,
+                ));
+                push_math_event(&mut rendered, text.into_string(), false);
+            }
+            Event::DisplayMath(text) => {
+                rendered.extend(render_text_run_with_latex(
+                    std::mem::take(&mut text_run),
+                    markdown_text,
+                ));
+                push_math_event(&mut rendered, text.into_string(), true);
+            }
             other => {
                 rendered.extend(render_text_run_with_latex(
                     std::mem::take(&mut text_run),
@@ -351,5 +368,14 @@ mod tests {
         assert!(html.contains("\\left\\{"));
         assert!(!html.contains("&gt; \\left\\{"));
         assert!(!html.contains("&gt; \\begin{aligned}"));
+    }
+
+    #[test]
+    fn does_not_render_math_without_latex_flag() {
+        let html = render_markdown_content("Euler: $e^{i\\pi}+1=0$.", false);
+
+        assert!(!html.contains("arithmatex"));
+        assert!(!html.contains("math-inline"));
+        assert!(html.contains("$e^{i\\pi}+1=0$."));
     }
 }

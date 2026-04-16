@@ -32,6 +32,9 @@ impl<'a> Render for IndexRenderer<'a> {
         parameters.insert("site", &self.site);
         parameters.insert("footer", &self.site.footer_view());
         parameters.insert("posts", &self.sorted_posts());
+        parameters.insert("page_eyebrow", "最近文章");
+        parameters.insert("page_title", &self.site.title);
+        parameters.insert("document_title", &self.site.title);
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
@@ -63,6 +66,12 @@ impl<'a> Render for TagRenderer<'a> {
         parameters.insert("category_href", &format!("/tags/{}/", self.tag.slug()));
         parameters.insert("overview_href", "/tags/");
         parameters.insert("overview_title", "返回标签总览");
+        parameters.insert("page_eyebrow", "标签");
+        parameters.insert("page_title", &self.tag.name());
+        parameters.insert(
+            "document_title",
+            &format!("{} - {}", self.tag.name(), self.site.title),
+        );
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)
@@ -97,6 +106,12 @@ impl<'a> Render for CategoryRenderer<'a> {
         );
         parameters.insert("overview_href", "/categories/");
         parameters.insert("overview_title", "返回分类总览");
+        parameters.insert("page_eyebrow", "分类");
+        parameters.insert("page_title", &self.category.name());
+        parameters.insert(
+            "document_title",
+            &format!("{} - {}", self.category.name(), self.site.title),
+        );
 
         let html = template().render("page/index.html", &parameters)?;
         Ok(html)

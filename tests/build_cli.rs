@@ -226,6 +226,8 @@ Rust Draft\n",
     let rust_tag_html = fs::read_to_string(rust_tag_page).unwrap();
     assert!(rust_tag_html.contains("href=\"/asset/css/main.css\""));
     assert!(rust_tag_html.contains("src=\"/asset/js/display.js\""));
+    assert!(rust_tag_html.contains("<h1 class=\"page-title\">rust</h1>"));
+    assert!(rust_tag_html.contains("<p class=\"page-eyebrow\">标签</p>"));
     assert!(rust_tag_html.contains("Rust One"));
     assert!(rust_tag_html.contains("Rust Two"));
     assert!(!rust_tag_html.contains("Database"));
