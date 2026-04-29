@@ -53,7 +53,7 @@ Hello\n",
         .unwrap();
 
     assert!(!output.status.success());
-    assert!(!output_dir.join("hello/index.html").is_file());
+    assert!(!output_dir.join("_posts/hello/index.html").is_file());
 
     fs::remove_dir_all(&source_dir).unwrap();
     if output_dir.exists() {
@@ -137,7 +137,7 @@ First\n",
         .status()
         .unwrap();
     assert!(first_status.success());
-    assert!(output_dir.join("first/index.html").is_file());
+    assert!(output_dir.join("_posts/first/index.html").is_file());
 
     fs::remove_file(source_dir.join("_posts/first.md")).unwrap();
 
@@ -149,7 +149,7 @@ First\n",
         .status()
         .unwrap();
     assert!(second_status.success());
-    assert!(!output_dir.join("first/index.html").exists());
+    assert!(!output_dir.join("_posts/first/index.html").exists());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
@@ -349,7 +349,7 @@ Linked Post\n",
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("linked-post/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/linked-post/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/rust/\""));
     assert!(post_html.contains("href=\"/tags/web/\""));
     assert!(post_html.contains("href=\"/categories/数据库/\""));
@@ -391,7 +391,7 @@ $$\n",
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("math/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/math/index.html")).unwrap();
     assert!(post_html.contains("href=\"/asset/css/vendor/katex/katex.min.css\""));
     assert!(post_html.contains("src=\"/asset/js/vendor/katex/katex.min.js\""));
     assert!(!post_html.contains("cdnjs.cloudflare.com"));
@@ -436,7 +436,7 @@ fn main() {}\n\
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("hello/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/hello/index.html")).unwrap();
     assert!(post_html.contains("href=\"/asset/css/vendor/highlight/default.min.css\""));
     assert!(post_html.contains("src=\"/asset/js/vendor/highlight/highlight.min.js\""));
     assert!(post_html.contains("href=\"/asset/css/vendor/katex/katex.min.css\""));
@@ -608,7 +608,7 @@ Slugged\n",
             .is_file()
     );
 
-    let post_html = fs::read_to_string(output_dir.join("slugged/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/slugged/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/c-plus-plus/\""));
     assert!(post_html.contains("href=\"/tags/rust/\""));
     assert!(!post_html.contains("href=\"/tags/rust-2/\""));
@@ -648,8 +648,8 @@ Hello\n",
         .unwrap();
     assert!(status.success());
 
-    assert!(output_dir.join("Some-Security-Issue/index.html").is_file());
-    assert!(!output_dir.join("some-security-issue/index.html").exists());
+    assert!(output_dir.join("_posts/Some-Security-Issue/index.html").is_file());
+    assert!(!output_dir.join("Some-Security-Issue/index.html").exists());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
@@ -686,12 +686,12 @@ Hello\n",
 
     assert!(
         output_dir
-            .join("new-concept-english/book-three/lesson-8/index.html")
+            .join("_posts/new-concept-english/book-three/lesson-8/index.html")
             .is_file()
     );
     assert!(
         !output_dir
-            .join("New-Concept-English/Book-Three/Lesson-8/index.html")
+            .join("_posts/New-Concept-English/Book-Three/Lesson-8/index.html")
             .exists()
     );
 
@@ -728,7 +728,7 @@ Hello\n",
         .status()
         .unwrap();
     assert!(first_status.success());
-    assert!(output_dir.join("Some-Security-Issue/index.html").is_file());
+    assert!(output_dir.join("_posts/Some-Security-Issue/index.html").is_file());
 
     write_file(
         &config_path,
@@ -744,8 +744,8 @@ Hello\n",
         .unwrap();
     assert!(second_status.success());
 
-    assert!(output_dir.join("some-security-issue/index.html").is_file());
-    assert!(!output_dir.join("Some-Security-Issue/index.html").exists());
+    assert!(output_dir.join("_posts/some-security-issue/index.html").is_file());
+    assert!(!output_dir.join("_posts/Some-Security-Issue/index.html").exists());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
@@ -786,7 +786,7 @@ Example\n",
 
     for path in [
         output_dir.join("index.html"),
-        output_dir.join("example/index.html"),
+        output_dir.join("_posts/example/index.html"),
         output_dir.join("tags/index.html"),
         output_dir.join("categories/index.html"),
     ] {
@@ -870,7 +870,7 @@ Post Two\n",
     assert!(!categories_overview.contains(">postgresql<"));
     assert!(categories_overview.contains("2 篇"));
 
-    let post_html = fs::read_to_string(output_dir.join("post-1/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/post-1/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/rust/\""));
     assert!(post_html.contains(">Rust<"));
     assert!(post_html.contains("href=\"/categories/postgresql/\""));
@@ -1031,7 +1031,7 @@ Reading\n",
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("reading/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/reading/index.html")).unwrap();
     let post_css = fs::read_to_string(output_dir.join("asset/css/post.css")).unwrap();
 
     assert!(post_html.contains("data-reading-line-height"));
@@ -1200,7 +1200,7 @@ Example\n",
 
     for path in [
         output_dir.join("index.html"),
-        output_dir.join("example/index.html"),
+        output_dir.join("_posts/example/index.html"),
         output_dir.join("categories/随笔/index.html"),
     ] {
         let html = fs::read_to_string(path).unwrap();
@@ -1240,7 +1240,7 @@ Example\n",
         .unwrap();
     assert!(status.success());
 
-    let post_html = fs::read_to_string(output_dir.join("example/index.html")).unwrap();
+    let post_html = fs::read_to_string(output_dir.join("_posts/example/index.html")).unwrap();
     let reading_settings_js = fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("template/asset/js/reading-settings.js"),
     )

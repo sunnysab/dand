@@ -865,8 +865,8 @@ date: 2024-01-01 00:00\n\
 
         blog.render().unwrap();
 
-        assert!(output_dir.join("example/index.html").is_file());
-        assert!(output_dir.join("example/example/image.png").is_file());
+        assert!(output_dir.join("_posts/example/index.html").is_file());
+        assert!(output_dir.join("_posts/example/example/image.png").is_file());
 
         fs::remove_dir_all(&source_dir).unwrap();
         fs::remove_dir_all(&output_dir).unwrap();

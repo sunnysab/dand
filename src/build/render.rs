@@ -237,8 +237,8 @@ pub fn render_full(
 
 /// Copy a post's companion resource directory into the post's output directory.
 ///
-/// For `source_path = …/_posts/example.md` with `relative_name = "example"`:
-/// copies `…/_posts/example/` → `output_root/example/example/`.
+/// For `source_path = …/_posts/example.md` with `relative_name = "_posts/example"`:
+/// copies `…/_posts/example/` → `output_root/_posts/example/example/`.
 pub fn copy_post_resources_for(
     source_path: &Path,
     relative_name: &str,

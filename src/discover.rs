@@ -171,7 +171,7 @@ impl WalkDirectory for PostWalker {
         // Improve readability by always using '/'
         let rp = rp.replace('\\', "/");
 
-        let rp = rp.strip_prefix("_posts/").unwrap_or(&rp).to_string();
+        let rp = rp.to_string();
 
         if self.normalize_slug {
             normalize_post_relative_name(&rp)
@@ -244,16 +244,16 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn convert_path_strips_posts_directory_prefix() {
+    fn convert_path_keeps_posts_directory_prefix() {
         let walker = PostWalker::from(PathBuf::from("/tmp/source"));
 
         assert_eq!(
             walker.convert_path(&PathBuf::from("/tmp/source/_posts/example.md")),
-            "example"
+            "_posts/example"
         );
         assert_eq!(
             walker.convert_path(&PathBuf::from("/tmp/source/_posts/nested/post.md")),
-            "nested/post"
+            "_posts/nested/post"
         );
     }
 
