@@ -78,6 +78,7 @@ pub struct PostReference {
     pub modified: DateTime<Local>,
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 impl PostReference {
     pub fn is_under_posts_dir(&self) -> bool {
         self.full_path

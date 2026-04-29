@@ -311,10 +311,10 @@ fn asset_dir_candidates(source_dir: &Path, template_dir: &Path) -> Vec<std::path
         candidates.push(cwd.join("template").join("asset"));
     }
 
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            candidates.push(exe_dir.join("template").join("asset"));
-        }
+    if let Ok(exe_path) = std::env::current_exe()
+        && let Some(exe_dir) = exe_path.parent()
+    {
+        candidates.push(exe_dir.join("template").join("asset"));
     }
 
     candidates.push(template_dir.join("asset"));

@@ -136,6 +136,7 @@ pub fn load(reference: PostReference) -> Result<LoadedPost> {
 }
 
 impl LoadedPost {
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn build(self, env: &mut Environment) -> SharedPost {
         let LoadedPost {
             reference,

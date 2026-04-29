@@ -72,6 +72,7 @@ impl DirtySet {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.render_posts.is_empty()
             && self.delete_post_outputs.is_empty()
@@ -135,14 +136,13 @@ fn infer_removed_kind(path: &Path, cached_posts: &HashMap<String, CachedPost>) -
     // contains a .md file named after the parent directory.
     if let (Some(parent), Some(grandparent)) =
         (path.parent(), path.parent().and_then(|p| p.parent()))
+        && let Some(parent_name) = parent.file_name()
     {
-        if let Some(parent_name) = parent.file_name() {
-            let sibling_md = grandparent.join(format!("{}.md", parent_name.to_string_lossy()));
-            if sibling_md.is_file() {
-                return RemovedKind::PostResource {
-                    post_source: sibling_md,
-                };
-            }
+        let sibling_md = grandparent.join(format!("{}.md", parent_name.to_string_lossy()));
+        if sibling_md.is_file() {
+            return RemovedKind::PostResource {
+                post_source: sibling_md,
+            };
         }
     }
 

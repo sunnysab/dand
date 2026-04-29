@@ -1,6 +1,6 @@
 /// Reference: https://stackoverflow.com/questions/67803619/using-serdeserialize-with-optionchronodatetime
 pub mod datetime_serde {
-    use chrono::{DateTime, Local, TimeZone};
+    use chrono::{DateTime, Local, LocalResult, NaiveDateTime, TimeZone};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: [&str; 2] = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"];
@@ -26,14 +26,14 @@ pub mod datetime_serde {
             if string.len() <= 4 + 1 + 2 + 1 + 2 {
                 let date = string.as_str();
                 let datetime = format!("{date} 00:00:00");
-                if let Ok(result) = Local.datetime_from_str(&datetime, FORMAT[0]) {
+                if let Some(result) = parse_local_datetime(&datetime, FORMAT[0]) {
                     return Ok(Some(result));
                 }
             } else {
                 // Date and time
                 let datetime = string.as_str();
                 for dt_format in FORMAT {
-                    if let Ok(dt) = Local.datetime_from_str(datetime, dt_format) {
+                    if let Some(dt) = parse_local_datetime(datetime, dt_format) {
                         return Ok(Some(dt));
                     }
                 }
@@ -47,5 +47,14 @@ pub mod datetime_serde {
         }
 
         Ok(None)
+    }
+
+    fn parse_local_datetime(datetime: &str, format: &str) -> Option<DateTime<Local>> {
+        let naive = NaiveDateTime::parse_from_str(datetime, format).ok()?;
+        match Local.from_local_datetime(&naive) {
+            LocalResult::Single(dt) => Some(dt),
+            LocalResult::Ambiguous(earliest, _) => Some(earliest),
+            LocalResult::None => None,
+        }
     }
 }

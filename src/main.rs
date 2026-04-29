@@ -30,6 +30,7 @@ mod site;
 mod taxonomy;
 
 #[derive(Default)]
+#[allow(dead_code)]
 struct BlogBuilder {
     site: Option<SiteConf>,
 
@@ -37,6 +38,7 @@ struct BlogBuilder {
     output_dir: Option<PathBuf>,
 }
 
+#[allow(dead_code)]
 impl BlogBuilder {
     fn new() -> Self {
         Default::default()
@@ -102,6 +104,7 @@ impl BlogBuilder {
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 struct Blog {
     site: SiteConf,
     path: PathBuf,
@@ -109,6 +112,7 @@ struct Blog {
     env: Environment,
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 impl Blog {
     fn render_html(&self) -> Result<()> {
         let index_render = IndexRenderer::new(&self.site, &self.env);
@@ -217,6 +221,7 @@ impl Blog {
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
     use std::fs;
 
@@ -237,6 +242,7 @@ fn copy_dir(src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn prepare_output_dir(source_dir: &Path, output_dir: &Path) -> Result<()> {
     let source_dir = source_dir.canonicalize().with_context(|| {
         format!(
@@ -274,6 +280,7 @@ fn prepare_output_dir(source_dir: &Path, output_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn copy_root_static_files(source_dir: &Path, output_dir: &Path) -> Result<()> {
     for entry in std::fs::read_dir(source_dir)? {
         let entry = entry?;
@@ -292,6 +299,7 @@ fn copy_root_static_files(source_dir: &Path, output_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn copy_post_resources(post_path: &Path, output_dir: &Path) -> Result<()> {
     let Some(parent) = post_path.parent() else {
         return Ok(());
@@ -430,6 +438,7 @@ fn run_preview(
     }
 }
 
+#[allow(dead_code)]
 fn build_blog(source_dir: &Path, output_dir: &Path, config: Option<PathBuf>) -> Result<Blog> {
     let conf_path = resolve_config_path(source_dir, config)?;
     BlogBuilder::new()
@@ -446,10 +455,10 @@ fn resolve_template_dir(source_dir: &Path) -> Result<PathBuf> {
         candidates.push(cwd.join("template"));
     }
 
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            candidates.push(exe_dir.join("template"));
-        }
+    if let Ok(exe_path) = std::env::current_exe()
+        && let Some(exe_dir) = exe_path.parent()
+    {
+        candidates.push(exe_dir.join("template"));
     }
 
     if let Some(found) = candidates.into_iter().find(|p| p.is_dir()) {
@@ -459,6 +468,7 @@ fn resolve_template_dir(source_dir: &Path) -> Result<PathBuf> {
     bail!("could not find template directory")
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
     let mut candidates = vec![source_dir.join("template").join("asset")];
 
@@ -466,10 +476,10 @@ fn resolve_asset_dir(source_dir: &Path) -> Result<PathBuf> {
         candidates.push(cwd.join("template").join("asset"));
     }
 
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            candidates.push(exe_dir.join("template").join("asset"));
-        }
+    if let Ok(exe_path) = std::env::current_exe()
+        && let Some(exe_dir) = exe_path.parent()
+    {
+        candidates.push(exe_dir.join("template").join("asset"));
     }
 
     if let Some(found) = candidates.into_iter().find(|path| path.is_dir()) {
