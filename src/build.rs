@@ -7,14 +7,14 @@ pub mod state;
 use std::collections::HashMap;
 use std::path::Path;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 use crate::build::diff::{diff_snapshots, plan_dirty_outputs};
 use crate::build::render::{execute_dirty_tasks, render_full};
 use crate::build::report::BuildReport;
-use crate::build::snapshot::{scan_source_tree, CurrentSnapshot};
+use crate::build::snapshot::{CurrentSnapshot, scan_source_tree};
 use crate::build::state::{
-    read_state, write_state_atomic, BuildState, CachedPost, GeneratedOutputs,
+    BuildState, CachedPost, GeneratedOutputs, read_state, write_state_atomic,
 };
 use crate::discover::{PostWalker, WalkDirectory};
 use crate::env::Environment;
@@ -59,7 +59,7 @@ fn full_build(
     reset_output_dir(output_dir)?;
 
     let site = SiteConf::load(config_path)?;
-    let env = build_environment(source_dir)?;
+    let env = build_environment(source_dir, &site)?;
 
     let mut report = render_full(&env, &site, source_dir, output_dir, template_dir)?;
     report.is_incremental = false;
@@ -86,7 +86,7 @@ fn incremental_build(
 
     // Always build a full Environment so relationship data is consistent.
     let site = SiteConf::load(config_path)?;
-    let env = build_environment(source_dir)?;
+    let env = build_environment(source_dir, &site)?;
 
     let dirty = plan_dirty_outputs(&diff, &old_state, &env);
 
@@ -101,9 +101,9 @@ fn incremental_build(
 }
 
 /// Build the in-memory `Environment` by loading all markdown posts from `source_dir`.
-fn build_environment(source_dir: &Path) -> Result<Environment> {
+fn build_environment(source_dir: &Path, site: &SiteConf) -> Result<Environment> {
     let mut env = Environment::new();
-    let walker = PostWalker::from(source_dir.to_path_buf());
+    let walker = PostWalker::new(source_dir.to_path_buf(), site.post.normalize_slug);
     for post_ref in walker.walk()? {
         let path_display = post_ref.full_path.display().to_string();
         crate::post::load(post_ref)

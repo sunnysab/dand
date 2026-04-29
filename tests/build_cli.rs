@@ -443,21 +443,31 @@ fn main() {}\n\
     assert!(post_html.contains("src=\"/asset/js/vendor/katex/katex.min.js\""));
     assert!(!post_html.contains("cdn.jsdelivr.net"));
     assert!(!post_html.contains("cdnjs.cloudflare.com"));
-    assert!(output_dir
-        .join("asset/css/vendor/highlight/default.min.css")
-        .is_file());
-    assert!(output_dir
-        .join("asset/js/vendor/highlight/highlight.min.js")
-        .is_file());
-    assert!(output_dir
-        .join("asset/css/vendor/katex/katex.min.css")
-        .is_file());
-    assert!(output_dir
-        .join("asset/js/vendor/katex/katex.min.js")
-        .is_file());
-    assert!(output_dir
-        .join("asset/css/vendor/katex/fonts/KaTeX_Main-Regular.woff2")
-        .is_file());
+    assert!(
+        output_dir
+            .join("asset/css/vendor/highlight/default.min.css")
+            .is_file()
+    );
+    assert!(
+        output_dir
+            .join("asset/js/vendor/highlight/highlight.min.js")
+            .is_file()
+    );
+    assert!(
+        output_dir
+            .join("asset/css/vendor/katex/katex.min.css")
+            .is_file()
+    );
+    assert!(
+        output_dir
+            .join("asset/js/vendor/katex/katex.min.js")
+            .is_file()
+    );
+    assert!(
+        output_dir
+            .join("asset/css/vendor/katex/fonts/KaTeX_Main-Regular.woff2")
+            .is_file()
+    );
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
@@ -592,9 +602,11 @@ Slugged\n",
     assert!(output_dir.join("tags/c-plus-plus/index.html").is_file());
     assert!(output_dir.join("tags/rust/index.html").is_file());
     assert!(!output_dir.join("tags/rust-2/index.html").exists());
-    assert!(output_dir
-        .join("categories/windows-程序/index.html")
-        .is_file());
+    assert!(
+        output_dir
+            .join("categories/windows-程序/index.html")
+            .is_file()
+    );
 
     let post_html = fs::read_to_string(output_dir.join("slugged/index.html")).unwrap();
     assert!(post_html.contains("href=\"/tags/c-plus-plus/\""));
@@ -602,6 +614,138 @@ Slugged\n",
     assert!(!post_html.contains("href=\"/tags/rust-2/\""));
     assert!(post_html.contains(">Rust<"));
     assert!(post_html.contains("href=\"/categories/windows-程序/\""));
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_keeps_post_paths_by_default() {
+    let source_dir = unique_temp_dir("post-path-default-source");
+    let output_dir = unique_temp_dir("post-path-default-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/Some-Security-Issue.md"),
+        "---\n\
+title: Some Security Issue\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Hello\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    assert!(output_dir.join("Some-Security-Issue/index.html").is_file());
+    assert!(!output_dir.join("some-security-issue/index.html").exists());
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn build_normalizes_post_paths_when_enabled() {
+    let source_dir = unique_temp_dir("post-path-normalized-source");
+    let output_dir = unique_temp_dir("post-path-normalized-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n\n[post]\nnormalize_slug = true\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/New-Concept-English/Book-Three/Lesson-8.md"),
+        "---\n\
+title: Lesson 8\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Hello\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    assert!(
+        output_dir
+            .join("new-concept-english/book-three/lesson-8/index.html")
+            .is_file()
+    );
+    assert!(
+        !output_dir
+            .join("New-Concept-English/Book-Three/Lesson-8/index.html")
+            .exists()
+    );
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
+fn incremental_build_replaces_old_post_paths_when_slug_normalization_changes() {
+    let source_dir = unique_temp_dir("post-path-rewrite-source");
+    let output_dir = unique_temp_dir("post-path-rewrite-output");
+    let config_path = source_dir.join("dand.toml");
+
+    write_file(
+        &config_path,
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("_posts/Some-Security-Issue.md"),
+        "---\n\
+title: Some Security Issue\n\
+date: 2024-01-01 00:00\n\
+---\n\
+\n\
+Hello\n",
+    );
+
+    let first_status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(first_status.success());
+    assert!(output_dir.join("Some-Security-Issue/index.html").is_file());
+
+    write_file(
+        &config_path,
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n\n[post]\nnormalize_slug = true\n",
+    );
+
+    let second_status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+    assert!(second_status.success());
+
+    assert!(output_dir.join("some-security-issue/index.html").is_file());
+    assert!(!output_dir.join("Some-Security-Issue/index.html").exists());
 
     fs::remove_dir_all(&source_dir).unwrap();
     fs::remove_dir_all(&output_dir).unwrap();
@@ -705,12 +849,16 @@ Post Two\n",
 
     assert!(output_dir.join("tags/rust/index.html").is_file());
     assert!(!output_dir.join("tags/rust-2/index.html").exists());
-    assert!(output_dir
-        .join("categories/postgresql/index.html")
-        .is_file());
-    assert!(!output_dir
-        .join("categories/postgresql-2/index.html")
-        .exists());
+    assert!(
+        output_dir
+            .join("categories/postgresql/index.html")
+            .is_file()
+    );
+    assert!(
+        !output_dir
+            .join("categories/postgresql-2/index.html")
+            .exists()
+    );
 
     let tags_overview = fs::read_to_string(output_dir.join("tags/index.html")).unwrap();
     assert!(tags_overview.contains(">Rust<"));

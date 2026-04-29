@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Local};
 use serde::Serialize;
 
+use crate::taxonomy::slugify;
+
 /// Iterator over the entries in a directory and its sub-directories.
 struct FileWalker {
     /// `stack` stores file scanning iterator for each layer, and `stack.last()` always refers to
@@ -95,11 +97,21 @@ impl PostReference {
 
 pub struct PostWalker {
     root: PathBuf,
+    normalize_slug: bool,
 }
 
 impl From<PathBuf> for PostWalker {
     fn from(root: PathBuf) -> Self {
-        Self { root }
+        Self::new(root, false)
+    }
+}
+
+impl PostWalker {
+    pub fn new(root: PathBuf, normalize_slug: bool) -> Self {
+        Self {
+            root,
+            normalize_slug,
+        }
     }
 }
 
@@ -159,7 +171,13 @@ impl WalkDirectory for PostWalker {
         // Improve readability by always using '/'
         let rp = rp.replace('\\', "/");
 
-        rp.strip_prefix("_posts/").unwrap_or(&rp).to_string()
+        let rp = rp.strip_prefix("_posts/").unwrap_or(&rp).to_string();
+
+        if self.normalize_slug {
+            normalize_post_relative_name(&rp)
+        } else {
+            rp
+        }
     }
 
     /// Read the metadata of a markdown file, returns a `PostReference` structure.
@@ -201,9 +219,28 @@ impl WalkDirectory for PostWalker {
     }
 }
 
+fn normalize_post_relative_name(relative_name: &str) -> String {
+    relative_name
+        .split('/')
+        .map(normalize_path_segment)
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+fn normalize_path_segment(segment: &str) -> String {
+    let leading_underscores = segment.chars().take_while(|ch| *ch == '_').count();
+    let suffix = &segment[leading_underscores..];
+
+    if suffix.is_empty() {
+        return segment.to_string();
+    }
+
+    format!("{}{}", "_".repeat(leading_underscores), slugify(suffix))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{PostWalker, WalkDirectory};
+    use super::{PostWalker, WalkDirectory, normalize_post_relative_name};
     use std::path::PathBuf;
 
     #[test]
@@ -217,6 +254,18 @@ mod tests {
         assert_eq!(
             walker.convert_path(&PathBuf::from("/tmp/source/_posts/nested/post.md")),
             "nested/post"
+        );
+    }
+
+    #[test]
+    fn normalize_post_relative_name_preserves_hierarchy() {
+        assert_eq!(
+            normalize_post_relative_name("New-Concept-English/Book-Three/Lesson-8"),
+            "new-concept-english/book-three/lesson-8"
+        );
+        assert_eq!(
+            normalize_post_relative_name("_drafts/Some-Draft"),
+            "_drafts/some-draft"
         );
     }
 }

@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::{Parser, Subcommand};
 
 use discover::PostWalker;
@@ -84,7 +84,7 @@ impl BlogBuilder {
 
         prepare_output_dir(&path, &output_dir)?;
         let mut env = Environment::new();
-        let walker = PostWalker::from(path.clone());
+        let walker = PostWalker::new(path.clone(), site.post.normalize_slug);
         for post_ref in walker.walk()?.into_iter() {
             let path = post_ref.full_path.display().to_string();
 
@@ -786,6 +786,7 @@ mod tests {
                 home: String::from("https://example.com/"),
                 description: String::from("test"),
                 footer: site::FooterConf::default(),
+                post: site::PostConf::default(),
             },
             path: source_dir.clone(),
             output_dir: output_dir.clone(),
@@ -809,6 +810,7 @@ mod tests {
                 home: String::from("https://example.com/"),
                 description: String::from("test"),
                 footer: site::FooterConf::default(),
+                post: site::PostConf::default(),
             },
             path: source_dir.clone(),
             output_dir: output_dir.clone(),
@@ -854,6 +856,7 @@ date: 2024-01-01 00:00\n\
                 home: String::from("https://example.com/"),
                 description: String::from("test"),
                 footer: site::FooterConf::default(),
+                post: site::PostConf::default(),
             },
             path: source_dir.clone(),
             output_dir: output_dir.clone(),

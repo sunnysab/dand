@@ -210,7 +210,7 @@ fn apply_added_file(
             apply_template_invalidation(&file.path, dirty, env, cached_posts);
         }
         FileKind::Config => {
-            mark_all_html_dirty(dirty, env);
+            apply_config_invalidation(dirty, env, cached_posts);
         }
     }
 }
@@ -223,7 +223,7 @@ fn apply_modified_file(
 ) {
     match &file.kind {
         FileKind::Config => {
-            mark_all_html_dirty(dirty, env);
+            apply_config_invalidation(dirty, env, cached_posts);
         }
         FileKind::Template => {
             apply_template_invalidation(&file.path, dirty, env, cached_posts);
@@ -294,7 +294,7 @@ fn apply_removed_file(
             apply_template_invalidation(path, dirty, env, cached_posts);
         }
         RemovedKind::Config => {
-            mark_all_html_dirty(dirty, env);
+            apply_config_invalidation(dirty, env, cached_posts);
         }
         RemovedKind::PostResource { post_source } => {
             dirty.copy_post_resources.insert(post_source.clone());
@@ -332,6 +332,20 @@ fn mark_all_html_dirty(dirty: &mut DirtySet, env: &Environment) {
     }
     for (slug, _) in env.get_categories().iter() {
         dirty.render_categories.insert(slug.clone());
+    }
+}
+
+fn apply_config_invalidation(
+    dirty: &mut DirtySet,
+    env: &Environment,
+    cached_posts: &HashMap<String, CachedPost>,
+) {
+    mark_all_html_dirty(dirty, env);
+
+    for cached in cached_posts.values() {
+        dirty
+            .delete_post_outputs
+            .push((cached.relative_name.clone(), cached.has_resource_dir));
     }
 }
 

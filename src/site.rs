@@ -15,6 +15,8 @@ pub struct SiteConf {
     pub description: String,
     #[serde(default)]
     pub footer: FooterConf,
+    #[serde(default)]
+    pub post: PostConf,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -23,6 +25,12 @@ pub struct FooterConf {
     pub start_year: u16,
     #[serde(default = "default_footer_beian")]
     pub beian: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Default)]
+pub struct PostConf {
+    #[serde(default)]
+    pub normalize_slug: bool,
 }
 
 #[derive(Clone, Serialize)]
