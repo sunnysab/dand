@@ -2,9 +2,9 @@ use anyhow::Context;
 use serde::Serialize;
 use std::sync::OnceLock;
 
+use crate::post::SharedPost;
 use crate::post::category::CategorySet;
 use crate::post::tag::TagSet;
-use crate::post::SharedPost;
 
 static SITE_TEMPLATE: OnceLock<tera::Tera> = OnceLock::new();
 

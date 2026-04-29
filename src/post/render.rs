@@ -2,7 +2,7 @@ use crate::env::template;
 use crate::post::SharedPost;
 use crate::render::Render;
 use crate::site::SiteConf;
-use pulldown_cmark::{html, CowStr, Event, Options, Parser};
+use pulldown_cmark::{CowStr, Event, Options, Parser, html};
 use serde::Serialize;
 use std::ops::Range;
 

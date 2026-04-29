@@ -4,10 +4,10 @@ use anyhow::Result;
 use chrono::Datelike;
 use serde::Serialize;
 
-use crate::env::{template, Environment};
+use crate::env::{Environment, template};
+use crate::post::SharedPost;
 use crate::post::category::SharedCategory;
 use crate::post::tag::SharedTag;
-use crate::post::SharedPost;
 use crate::site::SiteConf;
 
 use super::render::Render;
