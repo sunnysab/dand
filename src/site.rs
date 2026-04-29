@@ -31,6 +31,8 @@ pub struct FooterConf {
 pub struct PostConf {
     #[serde(default)]
     pub normalize_slug: bool,
+    #[serde(default)]
+    pub ignore: Vec<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -73,10 +75,124 @@ impl SiteConf {
     }
 }
 
+impl PostConf {
+    pub fn is_ignored_path(&self, relative_path: &Path) -> bool {
+        if self.ignore.is_empty() {
+            return false;
+        }
+
+        let normalized = normalize_relative_path(relative_path);
+        if normalized.is_empty() {
+            return false;
+        }
+
+        self.ignore
+            .iter()
+            .any(|pattern| glob_match_path(pattern, &normalized))
+    }
+}
+
 fn default_footer_start_year() -> u16 {
     2020
 }
 
 fn default_footer_beian() -> String {
     "沪ICP备20002980号".to_string()
+}
+
+fn normalize_relative_path(path: &Path) -> String {
+    path.components()
+        .map(|component| component.as_os_str().to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+fn glob_match_path(pattern: &str, path: &str) -> bool {
+    let pattern_segments: Vec<&str> = if pattern.is_empty() {
+        Vec::new()
+    } else {
+        pattern.split('/').collect()
+    };
+    let path_segments: Vec<&str> = if path.is_empty() {
+        Vec::new()
+    } else {
+        path.split('/').collect()
+    };
+    glob_match_segments(&pattern_segments, &path_segments)
+}
+
+fn glob_match_segments(patterns: &[&str], segments: &[&str]) -> bool {
+    match patterns.split_first() {
+        None => segments.is_empty(),
+        Some((&"**", rest)) => {
+            glob_match_segments(rest, segments)
+                || (!segments.is_empty() && glob_match_segments(patterns, &segments[1..]))
+        }
+        Some((pattern, rest)) => {
+            !segments.is_empty()
+                && glob_match_component(pattern, segments[0])
+                && glob_match_segments(rest, &segments[1..])
+        }
+    }
+}
+
+fn glob_match_component(pattern: &str, text: &str) -> bool {
+    let pattern_chars: Vec<char> = pattern.chars().collect();
+    let text_chars: Vec<char> = text.chars().collect();
+    let mut dp = vec![vec![false; text_chars.len() + 1]; pattern_chars.len() + 1];
+    dp[0][0] = true;
+
+    for i in 0..pattern_chars.len() {
+        match pattern_chars[i] {
+            '*' => {
+                for j in 0..=text_chars.len() {
+                    dp[i + 1][j] |= dp[i][j];
+                    if j < text_chars.len() {
+                        dp[i + 1][j + 1] |= dp[i + 1][j];
+                    }
+                }
+            }
+            '?' => {
+                for j in 0..text_chars.len() {
+                    if dp[i][j] {
+                        dp[i + 1][j + 1] = true;
+                    }
+                }
+            }
+            ch => {
+                for j in 0..text_chars.len() {
+                    if dp[i][j] && text_chars[j] == ch {
+                        dp[i + 1][j + 1] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    dp[pattern_chars.len()][text_chars.len()]
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::PostConf;
+
+    #[test]
+    fn post_ignore_supports_glob_patterns() {
+        let post = PostConf {
+            normalize_slug: false,
+            ignore: vec![
+                "_drafts/**".to_string(),
+                "_posts/tmp-*".to_string(),
+                "notes/private.md".to_string(),
+            ],
+        };
+
+        assert!(post.is_ignored_path(Path::new("_drafts")));
+        assert!(post.is_ignored_path(Path::new("_drafts/draft.md")));
+        assert!(post.is_ignored_path(Path::new("_posts/tmp-secret.md")));
+        assert!(post.is_ignored_path(Path::new("notes/private.md")));
+        assert!(!post.is_ignored_path(Path::new("_posts/public.md")));
+    }
 }

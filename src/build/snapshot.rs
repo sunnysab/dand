@@ -6,6 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
+use crate::site::PostConf;
+
 /// Categories of input files relevant to build invalidation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FileKind {
@@ -90,6 +92,7 @@ pub fn scan_source_tree(
     source_dir: &Path,
     template_dir: &Path,
     config_path: &Path,
+    post_conf: &PostConf,
 ) -> Result<CurrentSnapshot> {
     let mut files = Vec::new();
 
@@ -125,7 +128,7 @@ pub fn scan_source_tree(
     // 3. Source dir: collect markdown posts (and their companion resource files)
     let mut md_files = Vec::new();
     if source_dir.is_dir() {
-        collect_md_files(source_dir, &mut md_files)?;
+        collect_md_files(source_dir, source_dir, post_conf, &mut md_files)?;
     }
 
     for md_path in &md_files {
@@ -169,6 +172,13 @@ pub fn scan_source_tree(
             if ext == "md" || name == "dand.toml" {
                 continue;
             }
+            if path
+                .strip_prefix(source_dir)
+                .map(|relative_path| post_conf.is_ignored_path(relative_path))
+                .unwrap_or(false)
+            {
+                continue;
+            }
             files.push(SnapshotFile {
                 mtime: file_mtime(&path)?,
                 path,
@@ -182,7 +192,12 @@ pub fn scan_source_tree(
 
 /// Recursively collect all `.md` files from `dir`, skipping subdirectories that are companion
 /// resource directories (i.e., a sibling `.md` file with the same name exists).
-fn collect_md_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
+fn collect_md_files(
+    dir: &Path,
+    source_dir: &Path,
+    post_conf: &PostConf,
+    out: &mut Vec<PathBuf>,
+) -> Result<()> {
     if !dir.is_dir() {
         return Ok(());
     }
@@ -195,11 +210,25 @@ fn collect_md_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
         let entry = entry?;
         let path = entry.path();
         if path.is_file() && path.extension() == Some("md".as_ref()) {
+            if path
+                .strip_prefix(source_dir)
+                .map(|relative_path| post_conf.is_ignored_path(relative_path))
+                .unwrap_or(false)
+            {
+                continue;
+            }
             if let Some(stem) = path.file_stem() {
                 md_stems.insert(stem.to_os_string());
             }
             md_paths.push(path);
         } else if path.is_dir() {
+            if path
+                .strip_prefix(source_dir)
+                .map(|relative_path| post_conf.is_ignored_path(relative_path))
+                .unwrap_or(false)
+            {
+                continue;
+            }
             subdirs.push(path);
         }
     }
@@ -215,7 +244,7 @@ fn collect_md_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
         if md_stems.contains(&dir_name) {
             continue;
         }
-        collect_md_files(&subdir, out)?;
+        collect_md_files(&subdir, source_dir, post_conf, out)?;
     }
 
     Ok(())

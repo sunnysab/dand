@@ -64,7 +64,7 @@ fn full_build(
     let mut report = render_full(&env, &site, source_dir, output_dir, template_dir)?;
     report.is_incremental = false;
 
-    let snapshot = scan_source_tree(source_dir, template_dir, config_path)
+    let snapshot = scan_source_tree(source_dir, template_dir, config_path, &site.post)
         .context("failed to scan source tree after full build")?;
     let new_state = capture_state(&snapshot, &env);
     write_state_atomic(output_dir, &new_state)?;
@@ -79,13 +79,13 @@ fn incremental_build(
     template_dir: &Path,
     old_state: BuildState,
 ) -> Result<BuildReport> {
-    let snapshot = scan_source_tree(source_dir, template_dir, config_path)
+    let site = SiteConf::load(config_path)?;
+    let snapshot = scan_source_tree(source_dir, template_dir, config_path, &site.post)
         .context("failed to scan source tree")?;
 
     let diff = diff_snapshots(&old_state, &snapshot);
 
     // Always build a full Environment so relationship data is consistent.
-    let site = SiteConf::load(config_path)?;
     let env = build_environment(source_dir, &site)?;
 
     let dirty = plan_dirty_outputs(&diff, &old_state, &env);
@@ -103,7 +103,7 @@ fn incremental_build(
 /// Build the in-memory `Environment` by loading all markdown posts from `source_dir`.
 fn build_environment(source_dir: &Path, site: &SiteConf) -> Result<Environment> {
     let mut env = Environment::new();
-    let walker = PostWalker::new(source_dir.to_path_buf(), site.post.normalize_slug);
+    let walker = PostWalker::new(source_dir.to_path_buf(), site.post.clone());
     for post_ref in walker.walk()? {
         let path_display = post_ref.full_path.display().to_string();
         crate::post::load(post_ref)

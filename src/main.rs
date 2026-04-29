@@ -84,7 +84,7 @@ impl BlogBuilder {
 
         prepare_output_dir(&path, &output_dir)?;
         let mut env = Environment::new();
-        let walker = PostWalker::new(path.clone(), site.post.normalize_slug);
+        let walker = PostWalker::new(path.clone(), site.post.clone());
         for post_ref in walker.walk()?.into_iter() {
             let path = post_ref.full_path.display().to_string();
 
@@ -866,7 +866,11 @@ date: 2024-01-01 00:00\n\
         blog.render().unwrap();
 
         assert!(output_dir.join("_posts/example/index.html").is_file());
-        assert!(output_dir.join("_posts/example/example/image.png").is_file());
+        assert!(
+            output_dir
+                .join("_posts/example/example/image.png")
+                .is_file()
+        );
 
         fs::remove_dir_all(&source_dir).unwrap();
         fs::remove_dir_all(&output_dir).unwrap();

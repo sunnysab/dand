@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Local};
 use serde::Serialize;
 
+use crate::site::PostConf;
 use crate::taxonomy::slugify;
 
 /// Iterator over the entries in a directory and its sub-directories.
@@ -97,21 +98,18 @@ impl PostReference {
 
 pub struct PostWalker {
     root: PathBuf,
-    normalize_slug: bool,
+    post_conf: PostConf,
 }
 
 impl From<PathBuf> for PostWalker {
     fn from(root: PathBuf) -> Self {
-        Self::new(root, false)
+        Self::new(root, PostConf::default())
     }
 }
 
 impl PostWalker {
-    pub fn new(root: PathBuf, normalize_slug: bool) -> Self {
-        Self {
-            root,
-            normalize_slug,
-        }
+    pub fn new(root: PathBuf, post_conf: PostConf) -> Self {
+        Self { root, post_conf }
     }
 }
 
@@ -173,7 +171,7 @@ impl WalkDirectory for PostWalker {
 
         let rp = rp.to_string();
 
-        if self.normalize_slug {
+        if self.post_conf.normalize_slug {
             normalize_post_relative_name(&rp)
         } else {
             rp
@@ -210,6 +208,11 @@ impl WalkDirectory for PostWalker {
             .filter(|f| {
                 // f.ends_with() returns true only if the whole path components matches, use extension() instead.
                 f.extension() == Some("md".as_ref())
+            })
+            .filter(|path| {
+                path.strip_prefix(&self.root)
+                    .map(|relative_path| !self.post_conf.is_ignored_path(relative_path))
+                    .unwrap_or(true)
             })
             .map(|f| {
                 // Read metadata and generate a PostReference.
