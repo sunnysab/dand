@@ -110,6 +110,55 @@ Draft\n",
 }
 
 #[test]
+fn build_uses_configured_publish_and_draft_directories() {
+    let source_dir = unique_temp_dir("configured-dir-source");
+    let output_dir = unique_temp_dir("configured-dir-output");
+
+    write_file(
+        &source_dir.join("dand.toml"),
+        "title = \"test\"\nhome = \"https://example.com/\"\ndescription = \"test\"\n\n[post]\npublish_dirs = [\"posts\"]\ndraft_dirs = [\"drafts\"]\n",
+    );
+    write_file(&source_dir.join("template/asset/css/main.css"), "body {}");
+    write_file(
+        &source_dir.join("posts/published.md"),
+        "---\n\
+title: Published\n\
+date: 2024-01-02 00:00\n\
+---\n\
+\n\
+Published\n",
+    );
+    write_file(
+        &source_dir.join("drafts/draft.md"),
+        "---\n\
+title: Draft\n\
+date: 2024-01-03 00:00\n\
+---\n\
+\n\
+Draft\n",
+    );
+
+    let status = Command::new(env!("CARGO_BIN_EXE_dand-rs"))
+        .arg("build")
+        .arg(&source_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .status()
+        .unwrap();
+
+    assert!(status.success());
+
+    let index_html = fs::read_to_string(output_dir.join("index.html")).unwrap();
+    assert!(index_html.contains("Published"));
+    assert!(!index_html.contains("Draft"));
+    assert!(output_dir.join("posts/published/index.html").is_file());
+    assert!(output_dir.join("drafts/draft/index.html").is_file());
+
+    fs::remove_dir_all(&source_dir).unwrap();
+    fs::remove_dir_all(&output_dir).unwrap();
+}
+
+#[test]
 fn build_removes_stale_generated_pages() {
     let source_dir = unique_temp_dir("stale-source");
     let output_dir = unique_temp_dir("stale-output");

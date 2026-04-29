@@ -12,6 +12,7 @@ use flag::PostFlag;
 
 use crate::env::Environment;
 use crate::post::tag::SharedTag;
+use crate::site::PostConf;
 
 use super::datetime::datetime_serde;
 use super::discover::PostReference;
@@ -149,36 +150,93 @@ impl LoadedPost {
         let is_hidden = front_matter
             .is_hidden
             .unwrap_or(reference.should_hide_from_index());
-        let flag = PostFlag::new()
-            .with_draft_flag(is_draft)
-            .with_hidden_flag(is_hidden)
-            .with_latex_enabled_flag(front_matter.latex.unwrap_or(false));
-        let metadata = Metadata {
-            title: front_matter.title,
-            publish_date: front_matter.publish_date.unwrap_or(reference.created),
-            modify_date: front_matter.modify_date.unwrap_or(reference.modified),
-            latex: front_matter.latex.unwrap_or(false),
-            flag,
-            tags: vec![],
-            categories: vec![],
-        };
-        let post = Post {
-            reference,
-            raw_content: full_content,
-            metadata,
-            body,
-        };
 
-        let shared_post = SharedPost::from(post);
-        let tags = env.get_tags_mut();
-        for tag in &front_matter.tags {
-            tags.add(tag, &shared_post);
-        }
-        let categories = env.get_categories_mut();
-        for category in &front_matter.categories {
-            categories.add(category, &shared_post);
-        }
-        env.add_post(shared_post.clone());
-        shared_post
+        build_post(
+            env,
+            reference,
+            full_content,
+            front_matter,
+            body,
+            is_draft,
+            is_hidden,
+        )
     }
+
+    pub fn build_with_post_conf(
+        self,
+        env: &mut Environment,
+        source_dir: &std::path::Path,
+        post_conf: &PostConf,
+    ) -> SharedPost {
+        let LoadedPost {
+            reference,
+            full_content,
+            front_matter,
+            body,
+        } = self;
+
+        let relative_path = reference
+            .full_path
+            .strip_prefix(source_dir)
+            .unwrap_or(reference.full_path.as_path());
+
+        let is_draft = front_matter
+            .is_draft
+            .unwrap_or(post_conf.is_draft_path(relative_path));
+        let is_hidden = front_matter
+            .is_hidden
+            .unwrap_or(post_conf.should_hide_path(relative_path));
+
+        build_post(
+            env,
+            reference,
+            full_content,
+            front_matter,
+            body,
+            is_draft,
+            is_hidden,
+        )
+    }
+}
+
+fn build_post(
+    env: &mut Environment,
+    reference: PostReference,
+    full_content: String,
+    front_matter: RawFrontMatter,
+    body: &'static str,
+    is_draft: bool,
+    is_hidden: bool,
+) -> SharedPost {
+    let flag = PostFlag::new()
+        .with_draft_flag(is_draft)
+        .with_hidden_flag(is_hidden)
+        .with_latex_enabled_flag(front_matter.latex.unwrap_or(false));
+    let metadata = Metadata {
+        title: front_matter.title,
+        publish_date: front_matter.publish_date.unwrap_or(reference.created),
+        modify_date: front_matter.modify_date.unwrap_or(reference.modified),
+        latex: front_matter.latex.unwrap_or(false),
+        flag,
+        tags: vec![],
+        categories: vec![],
+    };
+    let post = Post {
+        reference,
+        raw_content: full_content,
+        metadata,
+        body,
+    };
+
+    let shared_post = SharedPost::from(post);
+    let tags = env.get_tags_mut();
+    for tag in &front_matter.tags {
+        tags.add(tag, &shared_post);
+    }
+    let categories = env.get_categories_mut();
+    for category in &front_matter.categories {
+        categories.add(category, &shared_post);
+    }
+    env.add_post(shared_post.clone());
+    shared_post
 }

@@ -108,7 +108,7 @@ fn build_environment(source_dir: &Path, site: &SiteConf) -> Result<Environment> 
         let path_display = post_ref.full_path.display().to_string();
         crate::post::load(post_ref)
             .with_context(|| format!("failed to load post: {}", path_display))?
-            .build(&mut env);
+            .build_with_post_conf(&mut env, source_dir, &site.post);
     }
     Ok(env)
 }

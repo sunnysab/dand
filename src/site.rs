@@ -27,10 +27,14 @@ pub struct FooterConf {
     pub beian: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PostConf {
     #[serde(default)]
     pub normalize_slug: bool,
+    #[serde(default = "default_publish_dirs")]
+    pub publish_dirs: Vec<String>,
+    #[serde(default = "default_draft_dirs")]
+    pub draft_dirs: Vec<String>,
     #[serde(default)]
     pub ignore: Vec<String>,
 }
@@ -46,6 +50,17 @@ impl Default for FooterConf {
         Self {
             start_year: default_footer_start_year(),
             beian: default_footer_beian(),
+        }
+    }
+}
+
+impl Default for PostConf {
+    fn default() -> Self {
+        Self {
+            normalize_slug: false,
+            publish_dirs: default_publish_dirs(),
+            draft_dirs: default_draft_dirs(),
+            ignore: Vec::new(),
         }
     }
 }
@@ -76,6 +91,18 @@ impl SiteConf {
 }
 
 impl PostConf {
+    pub fn is_publish_path(&self, relative_path: &Path) -> bool {
+        path_matches_prefixes(relative_path, &self.publish_dirs)
+    }
+
+    pub fn is_draft_path(&self, relative_path: &Path) -> bool {
+        path_matches_prefixes(relative_path, &self.draft_dirs)
+    }
+
+    pub fn should_hide_path(&self, relative_path: &Path) -> bool {
+        !self.is_publish_path(relative_path) && !self.is_draft_path(relative_path)
+    }
+
     pub fn is_ignored_path(&self, relative_path: &Path) -> bool {
         if self.ignore.is_empty() {
             return false;
@@ -96,6 +123,14 @@ fn default_footer_start_year() -> u16 {
     2020
 }
 
+fn default_publish_dirs() -> Vec<String> {
+    vec!["_posts".to_string()]
+}
+
+fn default_draft_dirs() -> Vec<String> {
+    vec!["_drafts".to_string()]
+}
+
 fn default_footer_beian() -> String {
     "沪ICP备20002980号".to_string()
 }
@@ -105,6 +140,29 @@ fn normalize_relative_path(path: &Path) -> String {
         .map(|component| component.as_os_str().to_string_lossy().into_owned())
         .collect::<Vec<_>>()
         .join("/")
+}
+
+fn path_matches_prefixes(path: &Path, prefixes: &[String]) -> bool {
+    if prefixes.is_empty() {
+        return false;
+    }
+
+    let segments: Vec<String> = path
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy().into_owned())
+        .collect();
+
+    prefixes
+        .iter()
+        .filter(|prefix| !prefix.is_empty())
+        .map(|prefix| prefix.split('/').collect::<Vec<_>>())
+        .any(|prefix_segments| {
+            prefix_segments.len() <= segments.len()
+                && prefix_segments
+                    .iter()
+                    .zip(segments.iter())
+                    .all(|(expected, actual)| expected == actual)
+        })
 }
 
 fn glob_match_path(pattern: &str, path: &str) -> bool {
@@ -176,12 +234,14 @@ fn glob_match_component(pattern: &str, text: &str) -> bool {
 mod tests {
     use std::path::Path;
 
-    use super::PostConf;
+    use super::{PostConf, default_draft_dirs, default_publish_dirs};
 
     #[test]
     fn post_ignore_supports_glob_patterns() {
         let post = PostConf {
             normalize_slug: false,
+            publish_dirs: default_publish_dirs(),
+            draft_dirs: default_draft_dirs(),
             ignore: vec![
                 "_drafts/**".to_string(),
                 "_posts/tmp-*".to_string(),
@@ -194,5 +254,22 @@ mod tests {
         assert!(post.is_ignored_path(Path::new("_posts/tmp-secret.md")));
         assert!(post.is_ignored_path(Path::new("notes/private.md")));
         assert!(!post.is_ignored_path(Path::new("_posts/public.md")));
+    }
+
+    #[test]
+    fn post_dir_semantics_are_configurable() {
+        let post = PostConf {
+            normalize_slug: false,
+            publish_dirs: vec!["posts".to_string(), "content/public".to_string()],
+            draft_dirs: vec!["drafts".to_string()],
+            ignore: Vec::new(),
+        };
+
+        assert!(post.is_publish_path(Path::new("posts/hello.md")));
+        assert!(post.is_publish_path(Path::new("content/public/hello.md")));
+        assert!(post.is_draft_path(Path::new("drafts/idea.md")));
+        assert!(post.should_hide_path(Path::new("404/index.md")));
+        assert!(!post.should_hide_path(Path::new("posts/hello.md")));
+        assert!(!post.should_hide_path(Path::new("drafts/idea.md")));
     }
 }
